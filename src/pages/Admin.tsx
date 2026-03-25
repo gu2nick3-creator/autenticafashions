@@ -32,7 +32,7 @@ type AdminProduct = {
   id: string;
   sku: string;
   name: string;
-  image: string;
+  images: string[];
   category: string;
   productType: ProductType;
   sizes: string[];
@@ -76,14 +76,6 @@ type AdminOrder = {
   createdAt: string;
 };
 
-const STORAGE = {
-  products: "af_admin_products",
-  categories: "af_admin_categories",
-  clients: "af_clients",
-  coupons: "af_admin_coupons",
-  orders: "af_orders",
-};
-
 const CLOTHING_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG"];
 
 const tabs: { id: Tab; label: string; icon: JSX.Element }[] = [
@@ -119,15 +111,6 @@ const tabs: { id: Tab; label: string; icon: JSX.Element }[] = [
   },
 ];
 
-const readJson = <T,>(key: string, fallback: T): T => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
 const Admin = () => {
   const { user, isLoggedIn } = useAuth();
 
@@ -153,7 +136,7 @@ const Admin = () => {
   const [form, setForm] = useState({
     sku: "",
     name: "",
-    image: "",
+    images: [] as string[],
     category: "",
     productType: "sapatos" as ProductType,
     shoeSizesText: "34,35,36,37,38",
@@ -164,17 +147,11 @@ const Admin = () => {
   });
 
   useEffect(() => {
-    const storedProducts = readJson<AdminProduct[]>(STORAGE.products, []);
-    const storedCategories = readJson<AdminCategory[]>(STORAGE.categories, []);
-    const storedClients = readJson<AdminClient[]>(STORAGE.clients, []);
-    const storedCoupons = readJson<AdminCoupon[]>(STORAGE.coupons, []);
-    const storedOrders = readJson<AdminOrder[]>(STORAGE.orders, []);
-
-    setProducts(storedProducts);
-    setCategories(storedCategories);
-    setClients(storedClients);
-    setCoupons(storedCoupons);
-    setOrders(storedOrders);
+    setProducts([]);
+    setCategories([]);
+    setClients([]);
+    setCoupons([]);
+    setOrders([]);
   }, []);
 
   const faturamento = useMemo(
@@ -184,32 +161,12 @@ const Admin = () => {
 
   if (!isLoggedIn || !user?.isAdmin) return <Navigate to="/login" />;
 
-  const persistProducts = (next: AdminProduct[]) => {
-    setProducts(next);
-    localStorage.setItem(STORAGE.products, JSON.stringify(next));
-  };
-
-  const persistCategories = (next: AdminCategory[]) => {
-    setCategories(next);
-    localStorage.setItem(STORAGE.categories, JSON.stringify(next));
-  };
-
-  const persistCoupons = (next: AdminCoupon[]) => {
-    setCoupons(next);
-    localStorage.setItem(STORAGE.coupons, JSON.stringify(next));
-  };
-
-  const persistOrders = (next: AdminOrder[]) => {
-    setOrders(next);
-    localStorage.setItem(STORAGE.orders, JSON.stringify(next));
-  };
-
   const resetProductForm = () => {
     setEditingProductId(null);
     setForm({
       sku: "",
       name: "",
-      image: "",
+      images: [],
       category: categories[0]?.name || "",
       productType: "sapatos",
       shoeSizesText: "34,35,36,37,38",
@@ -230,7 +187,7 @@ const Admin = () => {
     setForm({
       sku: product.sku,
       name: product.name,
-      image: product.image,
+      images: Array.isArray(product.images) ? product.images : [],
       category: product.category,
       productType: product.productType,
       shoeSizesText:
@@ -249,12 +206,29 @@ const Admin = () => {
     resetProductForm();
   };
 
-  const handleImageFile = (file?: File | null) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () =>
-      setForm((current) => ({ ...current, image: String(reader.result || "") }));
-    reader.readAsDataURL(file);
+  const handleImageFiles = (files?: FileList | null) => {
+    if (!files || !files.length) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || "");
+        if (!result) return;
+
+        setForm((current) => ({
+          ...current,
+          images: [...current.images, result],
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setForm((current) => ({
+      ...current,
+      images: current.images.filter((_, i) => i !== index),
+    }));
   };
 
   const saveProduct = () => {
@@ -280,9 +254,12 @@ const Admin = () => {
       id: editingProductId || `prod-admin-${Date.now()}`,
       sku: form.sku,
       name: form.name,
-      image:
-        form.image ||
-        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=600&fit=crop",
+      images:
+        form.images.length > 0
+          ? form.images
+          : [
+              "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=600&fit=crop",
+            ],
       category: form.category,
       productType: form.productType,
       sizes,
@@ -295,13 +272,14 @@ const Admin = () => {
     };
 
     if (editingProductId) {
-      const updated = products.map((product) =>
-        product.id === editingProductId ? nextProduct : product
+      setProducts((current) =>
+        current.map((product) =>
+          product.id === editingProductId ? nextProduct : product
+        )
       );
-      persistProducts(updated);
       toast.success("Produto atualizado com sucesso.");
     } else {
-      persistProducts([nextProduct, ...products]);
+      setProducts((current) => [nextProduct, ...current]);
       toast.success("Produto adicionado com sucesso.");
     }
 
@@ -309,23 +287,22 @@ const Admin = () => {
   };
 
   const deleteProduct = (id: string) => {
-    persistProducts(products.filter((product) => product.id !== id));
+    setProducts((current) => current.filter((product) => product.id !== id));
     toast.success("Produto excluído.");
   };
 
   const addCategory = () => {
     if (!newCategory.trim()) return;
-    const next = [
+    setCategories((current) => [
       { id: `cat-${Date.now()}`, name: newCategory.trim(), subcategories: [] },
-      ...categories,
-    ];
-    persistCategories(next);
+      ...current,
+    ]);
     setNewCategory("");
     toast.success("Categoria criada.");
   };
 
   const deleteCategory = (id: string) => {
-    persistCategories(categories.filter((category) => category.id !== id));
+    setCategories((current) => current.filter((category) => category.id !== id));
     toast.success("Categoria excluída.");
   };
 
@@ -333,33 +310,35 @@ const Admin = () => {
     const value = subCategoryInputs[categoryId]?.trim();
     if (!value) return;
 
-    const next = categories.map((category) =>
-      category.id === categoryId
-        ? {
-            ...category,
-            subcategories: [
-              ...category.subcategories,
-              { id: `sub-${Date.now()}`, name: value },
-            ],
-          }
-        : category
+    setCategories((current) =>
+      current.map((category) =>
+        category.id === categoryId
+          ? {
+              ...category,
+              subcategories: [
+                ...category.subcategories,
+                { id: `sub-${Date.now()}`, name: value },
+              ],
+            }
+          : category
+      )
     );
 
-    persistCategories(next);
     setSubCategoryInputs((current) => ({ ...current, [categoryId]: "" }));
     toast.success("Subcategoria criada.");
   };
 
   const deleteSubcategory = (categoryId: string, subId: string) => {
-    const next = categories.map((category) =>
-      category.id === categoryId
-        ? {
-            ...category,
-            subcategories: category.subcategories.filter((sub) => sub.id !== subId),
-          }
-        : category
+    setCategories((current) =>
+      current.map((category) =>
+        category.id === categoryId
+          ? {
+              ...category,
+              subcategories: category.subcategories.filter((sub) => sub.id !== subId),
+            }
+          : category
+      )
     );
-    persistCategories(next);
     toast.success("Subcategoria excluída.");
   };
 
@@ -378,7 +357,7 @@ const Admin = () => {
       usedCount: 0,
     };
 
-    persistCoupons([nextCoupon, ...coupons]);
+    setCoupons((current) => [nextCoupon, ...current]);
     setCouponForm({
       code: "",
       discount: "",
@@ -389,19 +368,19 @@ const Admin = () => {
   };
 
   const deleteCoupon = (id: string) => {
-    persistCoupons(coupons.filter((coupon) => coupon.id !== id));
+    setCoupons((current) => current.filter((coupon) => coupon.id !== id));
     toast.success("Cupom excluído.");
   };
 
   const updateOrderStatus = (id: string, status: OrderStatus) => {
-    persistOrders(
-      orders.map((order) => (order.id === id ? { ...order, status } : order))
+    setOrders((current) =>
+      current.map((order) => (order.id === id ? { ...order, status } : order))
     );
   };
 
   const updateTracking = (id: string, trackingCode: string) => {
-    persistOrders(
-      orders.map((order) => (order.id === id ? { ...order, trackingCode } : order))
+    setOrders((current) =>
+      current.map((order) => (order.id === id ? { ...order, trackingCode } : order))
     );
   };
 
@@ -534,7 +513,7 @@ const Admin = () => {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <img
-                              src={product.image}
+                              src={product.images?.[0] || "https://via.placeholder.com/150"}
                               alt={product.name}
                               className="w-14 h-14 rounded object-cover border border-border"
                             />
@@ -542,6 +521,9 @@ const Admin = () => {
                               <p className="font-semibold">{product.name}</p>
                               <p className="text-xs text-muted-foreground uppercase">
                                 {product.productType}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {product.images?.length || 0} foto(s)
                               </p>
                             </div>
                           </div>
@@ -923,7 +905,7 @@ const Admin = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-xs font-heading font-semibold uppercase mb-2">
-                  Adicionar imagem
+                  Adicionar imagens
                 </label>
 
                 <div className="grid sm:grid-cols-2 gap-3">
@@ -932,14 +914,15 @@ const Admin = () => {
                     <div>
                       <p className="font-semibold text-sm">Selecionar da galeria</p>
                       <p className="text-xs text-muted-foreground">
-                        Escolha um arquivo do aparelho
+                        Escolha uma ou mais imagens
                       </p>
                     </div>
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       className="hidden"
-                      onChange={(e) => handleImageFile(e.target.files?.[0])}
+                      onChange={(e) => handleImageFiles(e.target.files)}
                     />
                   </label>
 
@@ -953,18 +936,35 @@ const Admin = () => {
                       type="file"
                       accept="image/*"
                       capture="environment"
+                      multiple
                       className="hidden"
-                      onChange={(e) => handleImageFile(e.target.files?.[0])}
+                      onChange={(e) => handleImageFiles(e.target.files)}
                     />
                   </label>
                 </div>
 
-                {form.image && (
-                  <img
-                    src={form.image}
-                    alt="Prévia"
-                    className="mt-3 w-28 h-28 object-cover rounded-lg border border-border"
-                  />
+                {form.images.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {form.images.map((img, index) => (
+                      <div
+                        key={`${img}-${index}`}
+                        className="relative rounded-lg overflow-hidden border border-border"
+                      >
+                        <img
+                          src={img}
+                          alt={`Prévia ${index + 1}`}
+                          className="w-full h-28 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
