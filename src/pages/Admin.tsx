@@ -1,11 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutGrid, Package, ShoppingCart, Users, Tag, DollarSign, Plus, Trash2, Pencil, X, Camera, ImagePlus } from "lucide-react";
-import { categories as defaultCategories, products as defaultProducts } from "@/data/products";
+import {
+  LayoutGrid,
+  Package,
+  ShoppingCart,
+  Users,
+  Tag,
+  DollarSign,
+  Plus,
+  Trash2,
+  Pencil,
+  X,
+  Camera,
+  ImagePlus,
+} from "lucide-react";
 import { toast } from "sonner";
 
-type Tab = "faturamento" | "produtos" | "categorias" | "clientes" | "cupons" | "pedidos";
+type Tab =
+  | "faturamento"
+  | "produtos"
+  | "categorias"
+  | "clientes"
+  | "cupons"
+  | "pedidos";
+
 type ProductType = "roupas" | "sapatos";
 type OrderStatus = "Em preparo" | "Enviado" | "Cancelado" | "Entregue";
 
@@ -68,12 +87,36 @@ const STORAGE = {
 const CLOTHING_SIZES = ["PP", "P", "M", "G", "GG", "XG", "XGG"];
 
 const tabs: { id: Tab; label: string; icon: JSX.Element }[] = [
-  { id: "faturamento", label: "Faturamento", icon: <DollarSign className="w-4 h-4" /> },
-  { id: "produtos", label: "Produtos", icon: <Package className="w-4 h-4" /> },
-  { id: "categorias", label: "Categorias", icon: <LayoutGrid className="w-4 h-4" /> },
-  { id: "clientes", label: "Clientes", icon: <Users className="w-4 h-4" /> },
-  { id: "cupons", label: "Cupons", icon: <Tag className="w-4 h-4" /> },
-  { id: "pedidos", label: "Pedidos", icon: <ShoppingCart className="w-4 h-4" /> },
+  {
+    id: "faturamento",
+    label: "Faturamento",
+    icon: <DollarSign className="w-4 h-4" />,
+  },
+  {
+    id: "produtos",
+    label: "Produtos",
+    icon: <Package className="w-4 h-4" />,
+  },
+  {
+    id: "categorias",
+    label: "Categorias",
+    icon: <LayoutGrid className="w-4 h-4" />,
+  },
+  {
+    id: "clientes",
+    label: "Clientes",
+    icon: <Users className="w-4 h-4" />,
+  },
+  {
+    id: "cupons",
+    label: "Cupons",
+    icon: <Tag className="w-4 h-4" />,
+  },
+  {
+    id: "pedidos",
+    label: "Pedidos",
+    icon: <ShoppingCart className="w-4 h-4" />,
+  },
 ];
 
 const readJson = <T,>(key: string, fallback: T): T => {
@@ -85,53 +128,28 @@ const readJson = <T,>(key: string, fallback: T): T => {
   }
 };
 
-const seedProducts = (): AdminProduct[] => [];
-
-const seedCategories = (): AdminCategory[] => [];
-
-const seedCoupons = (): AdminCoupon[] => [];
-
-const seedOrders = (): AdminOrder[] => [
-  {
-    id: "PED-1001",
-    clientName: "Cliente Exemplo",
-    clientEmail: "cliente@exemplo.com",
-    address: "Rua das Flores, 120 - João Pessoa/PB",
-    status: "Em preparo",
-    trackingCode: "",
-    items: 10,
-    total: 1299.9,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "PED-1002",
-    clientName: "Maria Oliveira",
-    clientEmail: "maria@email.com",
-    address: "Av. Central, 455 - Campina Grande/PB",
-    status: "Enviado",
-    trackingCode: "BR1234567890",
-    items: 6,
-    total: 899.9,
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
-
-function addDays(days: number) {
-  return new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
-}
-
 const Admin = () => {
   const { user, isLoggedIn } = useAuth();
+
   const [activeTab, setActiveTab] = useState<Tab>("faturamento");
   const [showProductModal, setShowProductModal] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [clients, setClients] = useState<AdminClient[]>([]);
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+
   const [newCategory, setNewCategory] = useState("");
   const [subCategoryInputs, setSubCategoryInputs] = useState<Record<string, string>>({});
-  const [couponForm, setCouponForm] = useState({ code: "", discount: "", expiresAt: addDays(7), usageLimit: "" });
+  const [couponForm, setCouponForm] = useState({
+    code: "",
+    discount: "",
+    expiresAt: addDays(7),
+    usageLimit: "",
+  });
+
   const [form, setForm] = useState({
     sku: "",
     name: "",
@@ -152,19 +170,17 @@ const Admin = () => {
     const storedCoupons = readJson<AdminCoupon[]>(STORAGE.coupons, []);
     const storedOrders = readJson<AdminOrder[]>(STORAGE.orders, []);
 
-    if (!storedProducts.length) localStorage.setItem(STORAGE.products, JSON.stringify(seedProducts()));
-    if (!storedCategories.length) localStorage.setItem(STORAGE.categories, JSON.stringify(seedCategories()));
-    if (!storedCoupons.length) localStorage.setItem(STORAGE.coupons, JSON.stringify(seedCoupons()));
-    if (!storedOrders.length) localStorage.setItem(STORAGE.orders, JSON.stringify(seedOrders()));
-
-    setProducts(readJson(STORAGE.products, seedProducts()));
-    setCategories(readJson(STORAGE.categories, seedCategories()));
+    setProducts(storedProducts);
+    setCategories(storedCategories);
     setClients(storedClients);
-    setCoupons(readJson(STORAGE.coupons, seedCoupons()));
-    setOrders(readJson(STORAGE.orders, seedOrders()));
+    setCoupons(storedCoupons);
+    setOrders(storedOrders);
   }, []);
 
-  const faturamento = useMemo(() => orders.reduce((acc, order) => acc + order.total, 0), [orders]);
+  const faturamento = useMemo(
+    () => orders.reduce((acc, order) => acc + order.total, 0),
+    [orders]
+  );
 
   if (!isLoggedIn || !user?.isAdmin) return <Navigate to="/login" />;
 
@@ -189,6 +205,7 @@ const Admin = () => {
   };
 
   const resetProductForm = () => {
+    setEditingProductId(null);
     setForm({
       sku: "",
       name: "",
@@ -203,43 +220,92 @@ const Admin = () => {
     });
   };
 
+  const openCreateProductModal = () => {
+    resetProductForm();
+    setShowProductModal(true);
+  };
+
+  const openEditProductModal = (product: AdminProduct) => {
+    setEditingProductId(product.id);
+    setForm({
+      sku: product.sku,
+      name: product.name,
+      image: product.image,
+      category: product.category,
+      productType: product.productType,
+      shoeSizesText:
+        product.productType === "sapatos" ? product.sizes.join(",") : "34,35,36,37,38",
+      colorsText: product.colors.join(", "),
+      normalPrice: String(product.normalPrice),
+      resalePrice: String(product.resalePrice),
+      clothingSizes:
+        product.productType === "roupas" ? product.sizes : [...CLOTHING_SIZES],
+    });
+    setShowProductModal(true);
+  };
+
+  const closeProductModal = () => {
+    setShowProductModal(false);
+    resetProductForm();
+  };
+
   const handleImageFile = (file?: File | null) => {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setForm((current) => ({ ...current, image: String(reader.result || "") }));
+    reader.onload = () =>
+      setForm((current) => ({ ...current, image: String(reader.result || "") }));
     reader.readAsDataURL(file);
   };
 
-  const addProduct = () => {
+  const saveProduct = () => {
     if (!form.sku || !form.name || !form.category || !form.normalPrice || !form.resalePrice) {
       toast.error("Preencha os dados principais do produto.");
       return;
     }
 
-    const sizes = form.productType === "roupas"
-      ? form.clothingSizes
-      : form.shoeSizesText.split(",").map((item) => item.trim()).filter(Boolean);
+    const sizes =
+      form.productType === "roupas"
+        ? form.clothingSizes
+        : form.shoeSizesText
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean);
 
-    const colors = form.colorsText.split(",").map((item) => item.trim()).filter(Boolean);
+    const colors = form.colorsText
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
     const nextProduct: AdminProduct = {
-      id: `prod-admin-${Date.now()}`,
+      id: editingProductId || `prod-admin-${Date.now()}`,
       sku: form.sku,
       name: form.name,
-      image: form.image || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=600&fit=crop",
+      image:
+        form.image ||
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=600&fit=crop",
       category: form.category,
       productType: form.productType,
       sizes,
       colors,
       normalPrice: Number(form.normalPrice),
       resalePrice: Number(form.resalePrice),
-      createdAt: new Date().toISOString(),
+      createdAt: editingProductId
+        ? products.find((item) => item.id === editingProductId)?.createdAt || new Date().toISOString()
+        : new Date().toISOString(),
     };
 
-    persistProducts([nextProduct, ...products]);
-    toast.success("Produto adicionado com sucesso.");
-    setShowProductModal(false);
-    resetProductForm();
+    if (editingProductId) {
+      const updated = products.map((product) =>
+        product.id === editingProductId ? nextProduct : product
+      );
+      persistProducts(updated);
+      toast.success("Produto atualizado com sucesso.");
+    } else {
+      persistProducts([nextProduct, ...products]);
+      toast.success("Produto adicionado com sucesso.");
+    }
+
+    closeProductModal();
   };
 
   const deleteProduct = (id: string) => {
@@ -249,7 +315,10 @@ const Admin = () => {
 
   const addCategory = () => {
     if (!newCategory.trim()) return;
-    const next = [{ id: `cat-${Date.now()}`, name: newCategory.trim(), subcategories: [] }, ...categories];
+    const next = [
+      { id: `cat-${Date.now()}`, name: newCategory.trim(), subcategories: [] },
+      ...categories,
+    ];
     persistCategories(next);
     setNewCategory("");
     toast.success("Categoria criada.");
@@ -263,11 +332,19 @@ const Admin = () => {
   const addSubcategory = (categoryId: string) => {
     const value = subCategoryInputs[categoryId]?.trim();
     if (!value) return;
+
     const next = categories.map((category) =>
       category.id === categoryId
-        ? { ...category, subcategories: [...category.subcategories, { id: `sub-${Date.now()}`, name: value }] }
-        : category,
+        ? {
+            ...category,
+            subcategories: [
+              ...category.subcategories,
+              { id: `sub-${Date.now()}`, name: value },
+            ],
+          }
+        : category
     );
+
     persistCategories(next);
     setSubCategoryInputs((current) => ({ ...current, [categoryId]: "" }));
     toast.success("Subcategoria criada.");
@@ -276,8 +353,11 @@ const Admin = () => {
   const deleteSubcategory = (categoryId: string, subId: string) => {
     const next = categories.map((category) =>
       category.id === categoryId
-        ? { ...category, subcategories: category.subcategories.filter((sub) => sub.id !== subId) }
-        : category,
+        ? {
+            ...category,
+            subcategories: category.subcategories.filter((sub) => sub.id !== subId),
+          }
+        : category
     );
     persistCategories(next);
     toast.success("Subcategoria excluída.");
@@ -288,6 +368,7 @@ const Admin = () => {
       toast.error("Preencha todos os dados do cupom.");
       return;
     }
+
     const nextCoupon: AdminCoupon = {
       id: `cup-${Date.now()}`,
       code: couponForm.code.trim().toUpperCase(),
@@ -296,8 +377,14 @@ const Admin = () => {
       usageLimit: Number(couponForm.usageLimit),
       usedCount: 0,
     };
+
     persistCoupons([nextCoupon, ...coupons]);
-    setCouponForm({ code: "", discount: "", expiresAt: addDays(7), usageLimit: "" });
+    setCouponForm({
+      code: "",
+      discount: "",
+      expiresAt: addDays(7),
+      usageLimit: "",
+    });
     toast.success("Cupom criado.");
   };
 
@@ -307,27 +394,38 @@ const Admin = () => {
   };
 
   const updateOrderStatus = (id: string, status: OrderStatus) => {
-    persistOrders(orders.map((order) => order.id === id ? { ...order, status } : order));
+    persistOrders(
+      orders.map((order) => (order.id === id ? { ...order, status } : order))
+    );
   };
 
   const updateTracking = (id: string, trackingCode: string) => {
-    persistOrders(orders.map((order) => order.id === id ? { ...order, trackingCode } : order));
+    persistOrders(
+      orders.map((order) => (order.id === id ? { ...order, trackingCode } : order))
+    );
   };
 
   return (
     <div className="min-h-screen flex bg-secondary">
       <aside className="w-72 bg-primary text-primary-foreground flex-shrink-0 min-h-screen hidden md:block">
         <div className="p-5 border-b border-primary-foreground/10">
-          <h2 className="font-heading font-black text-sm">AUTENTICA <span className="text-accent">FASHIONF</span></h2>
+          <h2 className="font-heading font-black text-sm">
+            AUTENTICA <span className="text-accent">FASHIONF</span>
+          </h2>
           <p className="text-[11px] opacity-70 mt-1">Painel Administrativo</p>
-          <p className="text-[11px] opacity-50 mt-1">Login: ADM</p>
         </div>
+
         <nav className="p-3">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-heading transition mb-1 ${activeTab === tab.id ? "bg-accent text-accent-foreground" : "hover:bg-primary-foreground/10"}`}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm font-heading transition mb-1 ${
+                activeTab === tab.id
+                  ? "bg-accent text-accent-foreground"
+                  : "hover:bg-primary-foreground/10"
+              }`}
             >
               {tab.icon}
               {tab.label}
@@ -339,20 +437,32 @@ const Admin = () => {
       <main className="flex-1 p-4 md:p-6 overflow-auto">
         <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
           <div>
-            <h1 className="font-heading font-black text-2xl uppercase">{tabs.find((tab) => tab.id === activeTab)?.label}</h1>
-            <p className="text-sm text-muted-foreground">Gerencie sua loja, clientes, pedidos e cupons.</p>
+            <h1 className="font-heading font-black text-2xl uppercase">
+              {tabs.find((tab) => tab.id === activeTab)?.label}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie sua loja, clientes, pedidos e cupons.
+            </p>
           </div>
+
           <div className="flex gap-2 flex-wrap">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`md:hidden px-3 py-2 rounded text-xs border ${activeTab === tab.id ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border"}`}
+                className={`md:hidden px-3 py-2 rounded text-xs border ${
+                  activeTab === tab.id
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background border-border"
+                }`}
               >
                 {tab.label}
               </button>
             ))}
-            <a href="/" className="text-sm text-accent hover:underline px-3 py-2">← Voltar à loja</a>
+            <a href="/" className="text-sm text-accent hover:underline px-3 py-2">
+              ← Voltar à loja
+            </a>
           </div>
         </div>
 
@@ -362,12 +472,26 @@ const Admin = () => {
             <MetricCard title="Pedidos" value={String(orders.length)} />
             <MetricCard title="Produtos" value={String(products.length)} />
             <MetricCard title="Clientes" value={String(clients.length)} />
+
             <div className="md:col-span-2 xl:col-span-4 bg-card border border-border rounded-xl p-5">
               <h3 className="font-heading font-bold mb-3">Resumo rápido</h3>
               <div className="grid md:grid-cols-3 gap-4 text-sm">
-                <InfoBox label="Ticket médio" value={orders.length ? money(faturamento / orders.length) : money(0)} />
-                <InfoBox label="Pedidos enviados" value={String(orders.filter((order) => order.status === "Enviado").length)} />
-                <InfoBox label="Pedidos em preparo" value={String(orders.filter((order) => order.status === "Em preparo").length)} />
+                <InfoBox
+                  label="Ticket médio"
+                  value={orders.length ? money(faturamento / orders.length) : money(0)}
+                />
+                <InfoBox
+                  label="Pedidos enviados"
+                  value={String(
+                    orders.filter((order) => order.status === "Enviado").length
+                  )}
+                />
+                <InfoBox
+                  label="Pedidos em preparo"
+                  value={String(
+                    orders.filter((order) => order.status === "Em preparo").length
+                  )}
+                />
               </div>
             </div>
           </section>
@@ -376,9 +500,18 @@ const Admin = () => {
         {activeTab === "produtos" && (
           <section className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between gap-3 flex-wrap">
-              <p className="text-sm text-muted-foreground">{products.length} produtos cadastrados</p>
-              <button onClick={() => { resetProductForm(); setShowProductModal(true); }} className="bg-accent text-accent-foreground text-xs font-heading font-bold px-4 py-2 rounded uppercase">+ Adicionar Produtos</button>
+              <p className="text-sm text-muted-foreground">
+                {products.length} produtos cadastrados
+              </p>
+              <button
+                type="button"
+                onClick={openCreateProductModal}
+                className="bg-accent text-accent-foreground text-xs font-heading font-bold px-4 py-2 rounded uppercase"
+              >
+                + Adicionar Produtos
+              </button>
             </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[860px]">
                 <thead>
@@ -393,32 +526,59 @@ const Admin = () => {
                     <th className="text-left px-4 py-3 text-xs uppercase">Ações</th>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id} className="border-t border-border align-top">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <img src={product.image} alt={product.name} className="w-14 h-14 rounded object-cover border border-border" />
-                          <div>
-                            <p className="font-semibold">{product.name}</p>
-                            <p className="text-xs text-muted-foreground uppercase">{product.productType}</p>
+                  {products.length ? (
+                    products.map((product) => (
+                      <tr key={product.id} className="border-t border-border align-top">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-14 h-14 rounded object-cover border border-border"
+                            />
+                            <div>
+                              <p className="font-semibold">{product.name}</p>
+                              <p className="text-xs text-muted-foreground uppercase">
+                                {product.productType}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">{product.sku}</td>
-                      <td className="px-4 py-3">{product.category}</td>
-                      <td className="px-4 py-3 text-xs">{product.sizes.join(", ")}</td>
-                      <td className="px-4 py-3 text-xs">{product.colors.join(", ")}</td>
-                      <td className="px-4 py-3">{money(product.normalPrice)}</td>
-                      <td className="px-4 py-3">{money(product.resalePrice)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <button className="text-accent"><Pencil className="w-4 h-4" /></button>
-                          <button onClick={() => deleteProduct(product.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></button>
-                        </div>
+                        </td>
+                        <td className="px-4 py-3">{product.sku}</td>
+                        <td className="px-4 py-3">{product.category}</td>
+                        <td className="px-4 py-3 text-xs">{product.sizes.join(", ")}</td>
+                        <td className="px-4 py-3 text-xs">{product.colors.join(", ")}</td>
+                        <td className="px-4 py-3">{money(product.normalPrice)}</td>
+                        <td className="px-4 py-3">{money(product.resalePrice)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEditProductModal(product)}
+                              className="text-accent"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteProduct(product.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                        Nenhum produto cadastrado ainda.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -428,28 +588,75 @@ const Admin = () => {
         {activeTab === "categorias" && (
           <section className="space-y-4">
             <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap gap-3">
-              <input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Nova categoria" className="flex-1 min-w-[220px] border border-border rounded px-3 py-2 bg-background" />
-              <button onClick={addCategory} className="bg-accent text-accent-foreground px-4 py-2 rounded text-sm font-semibold">Criar nova categoria</button>
+              <input
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Nova categoria"
+                className="flex-1 min-w-[220px] border border-border rounded px-3 py-2 bg-background"
+              />
+              <button
+                type="button"
+                onClick={addCategory}
+                className="bg-accent text-accent-foreground px-4 py-2 rounded text-sm font-semibold"
+              >
+                Criar nova categoria
+              </button>
             </div>
+
             <div className="grid lg:grid-cols-2 gap-4">
               {categories.map((category) => (
                 <div key={category.id} className="bg-card rounded-xl border border-border p-4">
                   <div className="flex items-center justify-between gap-3 mb-4">
                     <div>
                       <h3 className="font-heading font-bold text-lg">{category.name}</h3>
-                      <p className="text-sm text-muted-foreground">{category.subcategories.length} subcategorias</p>
+                      <p className="text-sm text-muted-foreground">
+                        {category.subcategories.length} subcategorias
+                      </p>
                     </div>
-                    <button onClick={() => deleteCategory(category.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></button>
+                    <button
+                      type="button"
+                      onClick={() => deleteCategory(category.id)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
+
                   <div className="flex gap-2 mb-3">
-                    <input value={subCategoryInputs[category.id] || ""} onChange={(e) => setSubCategoryInputs((current) => ({ ...current, [category.id]: e.target.value }))} placeholder="Nova subcategoria" className="flex-1 border border-border rounded px-3 py-2 bg-background text-sm" />
-                    <button onClick={() => addSubcategory(category.id)} className="bg-primary text-primary-foreground rounded px-3"><Plus className="w-4 h-4" /></button>
+                    <input
+                      value={subCategoryInputs[category.id] || ""}
+                      onChange={(e) =>
+                        setSubCategoryInputs((current) => ({
+                          ...current,
+                          [category.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="Nova subcategoria"
+                      className="flex-1 border border-border rounded px-3 py-2 bg-background text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addSubcategory(category.id)}
+                      className="bg-primary text-primary-foreground rounded px-3"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
+
                   <div className="space-y-2">
                     {category.subcategories.map((sub) => (
-                      <div key={sub.id} className="flex items-center justify-between border border-border rounded px-3 py-2 text-sm">
+                      <div
+                        key={sub.id}
+                        className="flex items-center justify-between border border-border rounded px-3 py-2 text-sm"
+                      >
                         <span>{sub.name}</span>
-                        <button onClick={() => deleteSubcategory(category.id, sub.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></button>
+                        <button
+                          type="button"
+                          onClick={() => deleteSubcategory(category.id, sub.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -462,8 +669,11 @@ const Admin = () => {
         {activeTab === "clientes" && (
           <section className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border">
-              <p className="text-sm text-muted-foreground">Todos os logins criados de clientes aparecem aqui.</p>
+              <p className="text-sm text-muted-foreground">
+                Todos os logins criados de clientes aparecem aqui.
+              </p>
             </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[640px]">
                 <thead>
@@ -473,15 +683,22 @@ const Admin = () => {
                     <th className="text-left px-4 py-3 text-xs uppercase">Cadastro</th>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {clients.length ? clients.map((client) => (
-                    <tr key={client.id} className="border-t border-border">
-                      <td className="px-4 py-3">{client.name}</td>
-                      <td className="px-4 py-3">{client.email}</td>
-                      <td className="px-4 py-3">{formatDate(client.createdAt)}</td>
+                  {clients.length ? (
+                    clients.map((client) => (
+                      <tr key={client.id} className="border-t border-border">
+                        <td className="px-4 py-3">{client.name}</td>
+                        <td className="px-4 py-3">{client.email}</td>
+                        <td className="px-4 py-3">{formatDate(client.createdAt)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">
+                        Nenhum cliente cadastrado ainda.
+                      </td>
                     </tr>
-                  )) : (
-                    <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">Nenhum cliente cadastrado ainda.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -492,24 +709,71 @@ const Admin = () => {
         {activeTab === "cupons" && (
           <section className="space-y-4">
             <div className="bg-card rounded-xl border border-border p-4 grid md:grid-cols-4 gap-3">
-              <input value={couponForm.code} onChange={(e) => setCouponForm((current) => ({ ...current, code: e.target.value }))} placeholder="Código do cupom" className="border border-border rounded px-3 py-2 bg-background" />
-              <input value={couponForm.discount} onChange={(e) => setCouponForm((current) => ({ ...current, discount: e.target.value }))} placeholder="Desconto %" type="number" className="border border-border rounded px-3 py-2 bg-background" />
-              <input value={couponForm.expiresAt} onChange={(e) => setCouponForm((current) => ({ ...current, expiresAt: e.target.value }))} type="date" className="border border-border rounded px-3 py-2 bg-background" />
-              <input value={couponForm.usageLimit} onChange={(e) => setCouponForm((current) => ({ ...current, usageLimit: e.target.value }))} placeholder="Qtd. de usos" type="number" className="border border-border rounded px-3 py-2 bg-background" />
+              <input
+                value={couponForm.code}
+                onChange={(e) =>
+                  setCouponForm((current) => ({ ...current, code: e.target.value }))
+                }
+                placeholder="Código do cupom"
+                className="border border-border rounded px-3 py-2 bg-background"
+              />
+              <input
+                value={couponForm.discount}
+                onChange={(e) =>
+                  setCouponForm((current) => ({ ...current, discount: e.target.value }))
+                }
+                placeholder="Desconto %"
+                type="number"
+                className="border border-border rounded px-3 py-2 bg-background"
+              />
+              <input
+                value={couponForm.expiresAt}
+                onChange={(e) =>
+                  setCouponForm((current) => ({ ...current, expiresAt: e.target.value }))
+                }
+                type="date"
+                className="border border-border rounded px-3 py-2 bg-background"
+              />
+              <input
+                value={couponForm.usageLimit}
+                onChange={(e) =>
+                  setCouponForm((current) => ({ ...current, usageLimit: e.target.value }))
+                }
+                placeholder="Qtd. de usos"
+                type="number"
+                className="border border-border rounded px-3 py-2 bg-background"
+              />
+
               <div className="md:col-span-4">
-                <button onClick={addCoupon} className="bg-accent text-accent-foreground px-4 py-2 rounded text-sm font-semibold">Criar cupom</button>
+                <button
+                  type="button"
+                  onClick={addCoupon}
+                  className="bg-accent text-accent-foreground px-4 py-2 rounded text-sm font-semibold"
+                >
+                  Criar cupom
+                </button>
               </div>
             </div>
+
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
               {coupons.map((coupon) => (
                 <div key={coupon.id} className="bg-card rounded-xl border border-border p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="font-heading font-bold text-lg">{coupon.code}</h3>
-                      <p className="text-sm text-muted-foreground">{coupon.discount}% de desconto</p>
+                      <p className="text-sm text-muted-foreground">
+                        {coupon.discount}% de desconto
+                      </p>
                     </div>
-                    <button onClick={() => deleteCoupon(coupon.id)} className="text-destructive"><Trash2 className="w-4 h-4" /></button>
+                    <button
+                      type="button"
+                      onClick={() => deleteCoupon(coupon.id)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
+
                   <div className="mt-3 text-sm space-y-1 text-muted-foreground">
                     <p>Duração: até {formatDate(coupon.expiresAt)}</p>
                     <p>Limite de uso: {coupon.usageLimit}</p>
@@ -523,36 +787,64 @@ const Admin = () => {
 
         {activeTab === "pedidos" && (
           <section className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="bg-card rounded-xl border border-border p-4">
-                <div className="flex flex-wrap gap-3 items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-heading font-bold text-lg">{order.id}</h3>
-                    <p className="text-sm text-muted-foreground">{order.clientName} · {order.clientEmail}</p>
-                    <p className="text-sm text-muted-foreground">{order.address}</p>
+            {orders.length ? (
+              orders.map((order) => (
+                <div key={order.id} className="bg-card rounded-xl border border-border p-4">
+                  <div className="flex flex-wrap gap-3 items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-heading font-bold text-lg">{order.id}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {order.clientName} · {order.clientEmail}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{order.address}</p>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="font-semibold">{money(order.total)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.items} itens · {formatDate(order.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{money(order.total)}</p>
-                    <p className="text-xs text-muted-foreground">{order.items} itens · {formatDate(order.createdAt)}</p>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase font-semibold mb-2">
+                        Status do pedido
+                      </label>
+                      <select
+                        value={order.status}
+                        onChange={(e) =>
+                          updateOrderStatus(order.id, e.target.value as OrderStatus)
+                        }
+                        className="w-full border border-border rounded px-3 py-2 bg-background"
+                      >
+                        <option>Em preparo</option>
+                        <option>Enviado</option>
+                        <option>Cancelado</option>
+                        <option>Entregue</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs uppercase font-semibold mb-2">
+                        Código de rastreio
+                      </label>
+                      <input
+                        value={order.trackingCode}
+                        onChange={(e) => updateTracking(order.id, e.target.value)}
+                        placeholder="Digite o código de rastreio"
+                        className="w-full border border-border rounded px-3 py-2 bg-background"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs uppercase font-semibold mb-2">Status do pedido</label>
-                    <select value={order.status} onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)} className="w-full border border-border rounded px-3 py-2 bg-background">
-                      <option>Em preparo</option>
-                      <option>Enviado</option>
-                      <option>Cancelado</option>
-                      <option>Entregue</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs uppercase font-semibold mb-2">Código de rastreio</label>
-                    <input value={order.trackingCode} onChange={(e) => updateTracking(order.id, e.target.value)} placeholder="Digite o código de rastreio" className="w-full border border-border rounded px-3 py-2 bg-background" />
-                  </div>
-                </div>
+              ))
+            ) : (
+              <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground">
+                Nenhum pedido encontrado ainda.
               </div>
-            ))}
+            )}
           </section>
         )}
       </main>
@@ -561,46 +853,119 @@ const Admin = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-card w-full max-w-3xl rounded-2xl border border-border shadow-2xl max-h-[90vh] overflow-auto">
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <h2 className="font-heading font-black text-lg uppercase">Adicionar Produto</h2>
-              <button onClick={() => setShowProductModal(false)}><X className="w-5 h-5" /></button>
+              <h2 className="font-heading font-black text-lg uppercase">
+                {editingProductId ? "Editar Produto" : "Adicionar Produto"}
+              </h2>
+              <button type="button" onClick={closeProductModal}>
+                <X className="w-5 h-5" />
+              </button>
             </div>
+
             <div className="p-4 grid md:grid-cols-2 gap-4">
-              <Field label="SKU"><input value={form.sku} onChange={(e) => setForm((current) => ({ ...current, sku: e.target.value }))} className="input-admin" /></Field>
-              <Field label="Nome do produto"><input value={form.name} onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))} className="input-admin" /></Field>
+              <Field label="SKU">
+                <input
+                  value={form.sku}
+                  onChange={(e) => setForm((current) => ({ ...current, sku: e.target.value }))}
+                  className="input-admin"
+                />
+              </Field>
+
+              <Field label="Nome do produto">
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
+                  className="input-admin"
+                />
+              </Field>
+
               <Field label="Selecionar categoria">
-                <select value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value }))} className="input-admin">
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((current) => ({ ...current, category: e.target.value }))}
+                  className="input-admin"
+                >
                   <option value="">Selecione</option>
-                  {categories.map((category) => <option key={category.id} value={category.name}>{category.name}</option>)}
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
               </Field>
+
               <Field label="Tipo">
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setForm((current) => ({ ...current, productType: "roupas" }))} className={`px-4 py-2 rounded border ${form.productType === "roupas" ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>Roupas</button>
-                  <button type="button" onClick={() => setForm((current) => ({ ...current, productType: "sapatos" }))} className={`px-4 py-2 rounded border ${form.productType === "sapatos" ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>Sapatos</button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, productType: "roupas" }))}
+                    className={`px-4 py-2 rounded border ${
+                      form.productType === "roupas"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border"
+                    }`}
+                  >
+                    Roupas
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setForm((current) => ({ ...current, productType: "sapatos" }))}
+                    className={`px-4 py-2 rounded border ${
+                      form.productType === "sapatos"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border"
+                    }`}
+                  >
+                    Sapatos
+                  </button>
                 </div>
               </Field>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-heading font-semibold uppercase mb-2">Adicionar imagem</label>
+                <label className="block text-xs font-heading font-semibold uppercase mb-2">
+                  Adicionar imagem
+                </label>
+
                 <div className="grid sm:grid-cols-2 gap-3">
                   <label className="border border-dashed border-border rounded-xl p-4 flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition">
                     <ImagePlus className="w-5 h-5" />
                     <div>
                       <p className="font-semibold text-sm">Selecionar da galeria</p>
-                      <p className="text-xs text-muted-foreground">Escolha um arquivo do aparelho</p>
+                      <p className="text-xs text-muted-foreground">
+                        Escolha um arquivo do aparelho
+                      </p>
                     </div>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageFile(e.target.files?.[0])} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageFile(e.target.files?.[0])}
+                    />
                   </label>
+
                   <label className="border border-dashed border-border rounded-xl p-4 flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition md:hidden">
                     <Camera className="w-5 h-5" />
                     <div>
                       <p className="font-semibold text-sm">Tirar foto agora</p>
                       <p className="text-xs text-muted-foreground">Opção liberada no mobile</p>
                     </div>
-                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleImageFile(e.target.files?.[0])} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => handleImageFile(e.target.files?.[0])}
+                    />
                   </label>
                 </div>
-                {form.image && <img src={form.image} alt="Prévia" className="mt-3 w-28 h-28 object-cover rounded-lg border border-border" />}
+
+                {form.image && (
+                  <img
+                    src={form.image}
+                    alt="Prévia"
+                    className="mt-3 w-28 h-28 object-cover rounded-lg border border-border"
+                  />
+                )}
               </div>
 
               {form.productType === "roupas" ? (
@@ -612,11 +977,19 @@ const Admin = () => {
                         <button
                           key={size}
                           type="button"
-                          onClick={() => setForm((current) => ({
-                            ...current,
-                            clothingSizes: checked ? current.clothingSizes.filter((item) => item !== size) : [...current.clothingSizes, size],
-                          }))}
-                          className={`px-3 py-2 rounded border text-sm ${checked ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}
+                          onClick={() =>
+                            setForm((current) => ({
+                              ...current,
+                              clothingSizes: checked
+                                ? current.clothingSizes.filter((item) => item !== size)
+                                : [...current.clothingSizes, size],
+                            }))
+                          }
+                          className={`px-3 py-2 rounded border text-sm ${
+                            checked
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "border-border"
+                          }`}
                         >
                           {size}
                         </button>
@@ -626,19 +999,66 @@ const Admin = () => {
                 </Field>
               ) : (
                 <Field label="Tamanhos dos sapatos">
-                  <input value={form.shoeSizesText} onChange={(e) => setForm((current) => ({ ...current, shoeSizesText: e.target.value }))} placeholder="Ex: 34,35,36,37,38" className="input-admin" />
+                  <input
+                    value={form.shoeSizesText}
+                    onChange={(e) =>
+                      setForm((current) => ({ ...current, shoeSizesText: e.target.value }))
+                    }
+                    placeholder="Ex: 34,35,36,37,38"
+                    className="input-admin"
+                  />
                 </Field>
               )}
 
               <Field label="Cores disponíveis">
-                <input value={form.colorsText} onChange={(e) => setForm((current) => ({ ...current, colorsText: e.target.value }))} placeholder="Ex: Preto, Branco, Nude" className="input-admin" />
+                <input
+                  value={form.colorsText}
+                  onChange={(e) =>
+                    setForm((current) => ({ ...current, colorsText: e.target.value }))
+                  }
+                  placeholder="Ex: Preto, Branco, Nude"
+                  className="input-admin"
+                />
               </Field>
-              <Field label="Preço normal"><input value={form.normalPrice} type="number" onChange={(e) => setForm((current) => ({ ...current, normalPrice: e.target.value }))} className="input-admin" /></Field>
-              <Field label="Preço revenda"><input value={form.resalePrice} type="number" onChange={(e) => setForm((current) => ({ ...current, resalePrice: e.target.value }))} className="input-admin" /></Field>
+
+              <Field label="Preço normal">
+                <input
+                  value={form.normalPrice}
+                  type="number"
+                  onChange={(e) =>
+                    setForm((current) => ({ ...current, normalPrice: e.target.value }))
+                  }
+                  className="input-admin"
+                />
+              </Field>
+
+              <Field label="Preço revenda">
+                <input
+                  value={form.resalePrice}
+                  type="number"
+                  onChange={(e) =>
+                    setForm((current) => ({ ...current, resalePrice: e.target.value }))
+                  }
+                  className="input-admin"
+                />
+              </Field>
             </div>
+
             <div className="p-4 border-t border-border flex justify-end gap-2">
-              <button onClick={() => setShowProductModal(false)} className="px-4 py-2 rounded border border-border">Cancelar</button>
-              <button onClick={addProduct} className="px-4 py-2 rounded bg-accent text-accent-foreground font-semibold">Salvar produto</button>
+              <button
+                type="button"
+                onClick={closeProductModal}
+                className="px-4 py-2 rounded border border-border"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={saveProduct}
+                className="px-4 py-2 rounded bg-accent text-accent-foreground font-semibold"
+              >
+                {editingProductId ? "Salvar alterações" : "Salvar produto"}
+              </button>
             </div>
           </div>
         </div>
@@ -663,10 +1083,16 @@ const InfoBox = ({ label, value }: { label: string; value: string }) => (
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <label className="block text-xs font-heading font-semibold uppercase mb-2">{label}</label>
+    <label className="block text-xs font-heading font-semibold uppercase mb-2">
+      {label}
+    </label>
     {children}
   </div>
 );
+
+function addDays(days: number) {
+  return new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+}
 
 const money = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
