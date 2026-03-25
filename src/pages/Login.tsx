@@ -89,10 +89,6 @@ const Login = () => {
               {isRegister ? "Fazer login" : "Cadastre-se"}
             </button>
           </p>
-
-          <div className="mt-4 p-3 bg-shop-price-hidden rounded">
-            <p className="text-xs text-muted-foreground text-center">
-              Painel ADM: use <strong>ADM</strong> e senha <strong>ADM123@</strong>
             </p>
           </div>
         </div>
