@@ -32,10 +32,15 @@ interface InfinitePayCheckoutResponse {
   raw?: unknown;
 }
 
+type CreateOrderResult = Order & {
+  checkout_url?: string;
+  payment?: InfinitePayCheckoutResponse;
+};
+
 export const orderService = {
   getMyOrders: () => api.get<Order[]>('/api/orders/my'),
 
-  create: async (data: CreateOrderData) => {
+  create: async (data: CreateOrderData): Promise<CreateOrderResult> => {
     const orderResponse = await api.post<Order>('/api/orders', {
       items: data.items,
       address: data.address,
@@ -47,11 +52,11 @@ export const orderService = {
     });
 
     if (!data.customer || !data.paymentItems || data.paymentItems.length === 0) {
-      return orderResponse;
+      return orderResponse as CreateOrderResult;
     }
 
     const checkoutResponse = await api.post<InfinitePayCheckoutResponse>(
-      '/api/payments/infinitepay/checkout',
+      '/api/payments/infinitepay/create-checkout',
       {
         items: data.paymentItems,
         customer: data.customer,
@@ -60,17 +65,9 @@ export const orderService = {
     );
 
     return {
-      ...orderResponse,
-      checkout_url:
-        checkoutResponse?.checkout_url ||
-        checkoutResponse?.data?.checkout_url,
+      ...(orderResponse as Order),
+      checkout_url: checkoutResponse.checkout_url,
       payment: checkoutResponse,
-      data: {
-        ...(orderResponse as any)?.data,
-        checkout_url:
-          checkoutResponse?.checkout_url ||
-          checkoutResponse?.data?.checkout_url,
-      },
     };
   },
 };
