@@ -38,4 +38,8 @@ export const authService = {
       setAuthToken(null);
     }
   },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await api.post('/api/auth/forgot-password', { email });
+  },
 };
