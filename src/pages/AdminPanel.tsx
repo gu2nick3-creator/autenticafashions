@@ -46,13 +46,15 @@ const AdminPanel = () => {
   const [dashboard, setDashboard] = useState({ totalRevenue: 0, paidOrders: 0, pendingOrders: 0, totalOrders: 0 });
 
   // Category form
-  const [categoryForm, setCategoryForm] = useState({ name: '', subcategory: '' });
+  const [categoryForm, setCategoryForm] = useState({ name: '', subcategory: '', image: '' });
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
   // Coupon form
   const [couponForm, setCouponForm] = useState({ code: '', discount: '', maxUses: '', usesPerClient: '', validUntil: '', type: 'percentage' as 'percentage' | 'value' });
 
   // Image upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const categoryFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isAuthenticated && isAdmin) {
@@ -163,6 +165,35 @@ const AdminPanel = () => {
     }
   };
 
+  const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const { url } = await adminService.uploadImage(file);
+      setCategoryForm(prev => ({ ...prev, image: url }));
+      toast.success('Imagem da categoria enviada!');
+    } catch {
+      toast.error('Erro ao enviar imagem da categoria');
+    }
+  };
+
+  const resetCategoryForm = () => {
+    setCategoryForm({ name: '', subcategory: '', image: '' });
+    setEditingCategoryId(null);
+    setShowAddCategory(false);
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setCategoryForm({
+      name: category.name,
+      subcategory: category.subcategories?.[0]?.name || '',
+      image: category.image || '',
+    });
+    setEditingCategoryId(category.id);
+    setShowAddCategory(true);
+  };
+
   const addColor = () => {
     const c = productForm.colorInput.trim();
     if (c && !productForm.colors.some(pc => pc.name === c)) {
@@ -202,15 +233,31 @@ const AdminPanel = () => {
   };
 
   const handleSaveCategory = async () => {
-    if (!categoryForm.name) { toast.error('Preencha o nome'); return; }
+    if (!categoryForm.name) {
+      toast.error('Preencha o nome');
+      return;
+    }
+
+    const payload: Partial<Category> = {
+      name: categoryForm.name,
+      image: categoryForm.image,
+      subcategories: categoryForm.subcategory ? [{ id: '', name: categoryForm.subcategory }] : [],
+    };
+
     try {
-      const created = await adminService.createCategory({ name: categoryForm.name, subcategories: categoryForm.subcategory ? [{ id: '', name: categoryForm.subcategory }] : [] });
-      setCategoriesList(prev => [...prev, created]);
-      setCategoryForm({ name: '', subcategory: '' });
-      setShowAddCategory(false);
-      toast.success('Categoria criada!');
+      if (editingCategoryId) {
+        const updated = await adminService.updateCategory(editingCategoryId, payload);
+        setCategoriesList(prev => prev.map(category => category.id === editingCategoryId ? updated : category));
+        toast.success('Categoria atualizada!');
+      } else {
+        const created = await adminService.createCategory(payload);
+        setCategoriesList(prev => [...prev, created]);
+        toast.success('Categoria criada!');
+      }
+
+      resetCategoryForm();
     } catch {
-      toast.error('Erro ao criar categoria');
+      toast.error(editingCategoryId ? 'Erro ao atualizar categoria' : 'Erro ao criar categoria');
     }
   };
 
@@ -384,7 +431,12 @@ const AdminPanel = () => {
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Tamanhos</label>
                   {productForm.type === 'roupas' ? (
-                    <div className="flex flex-wrap gap-2">
+                    {cat.image && (
+                    <div className="mb-3">
+                      <img src={cat.image} alt={cat.name} className="w-24 h-32 object-cover border border-border rounded-sm" />
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
                       {['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG'].map(s => (
                         <label key={s} className={`flex items-center gap-1 text-sm border rounded-sm px-3 py-1.5 cursor-pointer transition-colors ${productForm.clothingSizes.includes(s) ? 'border-primary bg-cream text-primary' : 'border-border text-foreground hover:border-primary'}`}>
                           <input type="checkbox" className="accent-primary" checked={productForm.clothingSizes.includes(s)} onChange={() => toggleClothingSize(s)} /> {s}
@@ -417,7 +469,12 @@ const AdminPanel = () => {
                     </button>
                   </div>
                   {productForm.colors.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    {cat.image && (
+                    <div className="mb-3">
+                      <img src={cat.image} alt={cat.name} className="w-24 h-32 object-cover border border-border rounded-sm" />
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
                       {productForm.colors.map(c => (
                         <span key={c.name} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-cream border border-border rounded-sm text-foreground">
                           {c.name}
@@ -508,7 +565,7 @@ const AdminPanel = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-2xl font-semibold text-foreground">Categorias</h2>
-              <button onClick={() => setShowAddCategory(!showAddCategory)} className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
+              <button onClick={() => { if (showAddCategory) { resetCategoryForm(); } else { setShowAddCategory(true); } }} className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
                 <Plus size={16} /> Nova Categoria
               </button>
             </div>
@@ -525,9 +582,24 @@ const AdminPanel = () => {
                     <input value={categoryForm.subcategory} onChange={e => setCategoryForm(p => ({ ...p, subcategory: e.target.value }))} className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary" />
                   </div>
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Imagem da Categoria</label>
+                  <input type="file" ref={categoryFileInputRef} onChange={handleCategoryImageUpload} accept="image/*" className="hidden" />
+                  <button onClick={() => categoryFileInputRef.current?.click()} className="flex items-center gap-2 border border-border rounded-sm px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors">
+                    <Upload size={18} /> Selecionar Imagem
+                  </button>
+                  {categoryForm.image && (
+                    <div className="mt-3">
+                      <img src={categoryForm.image} alt="Preview da categoria" className="w-28 h-36 object-cover border border-border rounded-sm" />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-3">
-                  <button onClick={handleSaveCategory} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">SALVAR</button>
-                  <button onClick={() => setShowAddCategory(false)} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
+                  <button onClick={handleSaveCategory} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">
+                    {editingCategoryId ? 'ATUALIZAR' : 'SALVAR'}
+                  </button>
+                  <button onClick={resetCategoryForm} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
                 </div>
               </div>
             )}
@@ -538,10 +610,15 @@ const AdminPanel = () => {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-display text-base font-medium text-foreground">{cat.name}</h3>
                     <div className="flex gap-2">
-                      <button className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
+                      <button onClick={() => handleEditCategory(cat)} className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
                       <button onClick={() => handleDeleteCategory(cat.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                     </div>
                   </div>
+                  {cat.image && (
+                    <div className="mb-3">
+                      <img src={cat.image} alt={cat.name} className="w-24 h-32 object-cover border border-border rounded-sm" />
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     {cat.subcategories.map(sub => (
                       <span key={sub.id} className="text-xs px-3 py-1 bg-cream border border-border rounded-sm text-muted-foreground flex items-center gap-1">
@@ -656,7 +733,7 @@ const AdminPanel = () => {
                     <p>Validade: {c.validUntil}</p>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
+                    <button onClick={() => handleEditCategory(cat)} className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
                     <button onClick={() => handleDeleteCoupon(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
                 </div>
