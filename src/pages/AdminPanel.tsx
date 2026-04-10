@@ -80,7 +80,9 @@ const AdminPanel = () => {
       });
     }).catch(() => {});
     adminService.getProducts().then(setProductsList).catch(() => {});
-    adminService.getOrders().then(setOrdersList).catch(() => {});
+    adminService.getOrders().then((orders: any) => {
+      setOrdersList(Array.isArray(orders) ? orders : []);
+    }).catch(() => setOrdersList([]));
     adminService.getCategories().then(setCategoriesList).catch(() => {});
     adminService.getCoupons().then(setCouponsList).catch(() => {});
     adminService.getCustomers().then(setClientsList).catch(() => {});
@@ -99,9 +101,9 @@ const AdminPanel = () => {
       description: p.description,
       category: p.category,
       subcategory: '',
-      priceNormal: p.priceNormal.toString(),
-      priceResale: p.priceResale.toString(),
-      stock: p.stock.toString(),
+      priceNormal: String(p.priceNormal ?? ''),
+      priceResale: String(p.priceResale ?? ''),
+      stock: String(p.stock ?? ''),
       active: true,
       featured: p.featured || false,
       isNew: p.isNew || false,
@@ -155,7 +157,7 @@ const AdminPanel = () => {
       }
       resetProductForm();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar produto');
+      toast.error(err?.message || 'Erro ao salvar produto');
     }
   };
 
@@ -809,8 +811,13 @@ const AdminPanel = () => {
               <p className="text-sm text-muted-foreground">Nenhum pedido realizado.</p>
             )}
             <div className="space-y-4">
-              {ordersList.map(order => (
-                <OrderCard key={order.id} order={order} onStatusChange={handleOrderStatusChange} onTrackingSave={handleTrackingSave} />
+              {ordersList.map((order: any, index: number) => (
+                <OrderCard
+                  key={order?.id || index}
+                  order={order}
+                  onStatusChange={handleOrderStatusChange}
+                  onTrackingSave={handleTrackingSave}
+                />
               ))}
             </div>
           </div>
@@ -820,57 +827,98 @@ const AdminPanel = () => {
   );
 };
 
-const OrderCard = ({ order, onStatusChange, onTrackingSave }: { order: any; onStatusChange: (id: string, s: OrderStatus) => void; onTrackingSave: (id: string, t: string, c: string) => void }) => {
-  const [tracking, setTracking] = useState(order.trackingCode || '');
-  const [carrier, setCarrier] = useState(order.carrier || '');
+const OrderCard = ({
+  order,
+  onStatusChange,
+  onTrackingSave,
+}: {
+  order: any;
+  onStatusChange: (id: string, s: OrderStatus) => void;
+  onTrackingSave: (id: string, t: string, c: string) => void;
+}) => {
+  const [tracking, setTracking] = useState(order?.trackingCode || '');
+  const [carrier, setCarrier] = useState(order?.carrier || '');
+
+  const createdAtLabel = order?.createdAt
+    ? new Date(order.createdAt).toLocaleDateString('pt-BR')
+    : '—';
+
+  const customerName = order?.customerName || '—';
+  const customerEmail = order?.customerEmail || '—';
+  const customerPhone = order?.customerPhone || '—';
+
+  const addressStreet = order?.address?.street || '—';
+  const addressNumber = order?.address?.number || '—';
+  const addressCity = order?.address?.city || '—';
+  const addressState = order?.address?.state || '—';
+
+  const safeItems = Array.isArray(order?.items) ? order.items : [];
 
   return (
     <div className="bg-card border border-border rounded-sm p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <span className="text-sm font-medium text-foreground">{order.id}</span>
-          <span className="text-xs text-muted-foreground ml-3">{new Date(order.createdAt).toLocaleDateString('pt-BR')}</span>
+          <span className="text-sm font-medium text-foreground">{order?.id || '—'}</span>
+          <span className="text-xs text-muted-foreground ml-3">{createdAtLabel}</span>
         </div>
         <select
-          value={order.status}
+          value={order?.status || 'em_analise'}
           className="text-xs border border-border rounded-sm px-3 py-1.5 bg-background focus:outline-none focus:border-primary"
-          onChange={e => onStatusChange(order.id, e.target.value as OrderStatus)}
+          onChange={e => {
+            if (order?.id) {
+              onStatusChange(order.id, e.target.value as OrderStatus);
+            }
+          }}
         >
           {Object.entries(ORDER_STATUS_LABELS).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
         <div>
           <p className="text-xs text-muted-foreground mb-1">Cliente</p>
-          <p className="text-foreground font-medium">{order.customerName}</p>
-          <p className="text-muted-foreground">{order.customerEmail}</p>
-          <p className="text-muted-foreground">{order.customerPhone}</p>
+          <p className="text-foreground font-medium">{customerName}</p>
+          <p className="text-muted-foreground">{customerEmail}</p>
+          <p className="text-muted-foreground">{customerPhone}</p>
         </div>
+
         <div>
           <p className="text-xs text-muted-foreground mb-1">Endereço</p>
-          <p className="text-foreground">{order.address.street}, {order.address.number}</p>
-          <p className="text-muted-foreground">{order.address.city}/{order.address.state}</p>
+          <p className="text-foreground">{addressStreet}, {addressNumber}</p>
+          <p className="text-muted-foreground">{addressCity}/{addressState}</p>
         </div>
+
         <div>
           <p className="text-xs text-muted-foreground mb-1">Valor</p>
-          <p className="text-foreground font-semibold text-lg">R$ {money(order.total)}</p>
-          <p className="text-xs text-primary">{order.priceType === 'resale' ? 'Revenda' : 'Normal'}</p>
+          <p className="text-foreground font-semibold text-lg">R$ {money(order?.total)}</p>
+          <p className="text-xs text-primary">{order?.priceType === 'resale' ? 'Revenda' : 'Normal'}</p>
         </div>
       </div>
-      {order.items && order.items.length > 0 && (
+
+      {safeItems.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground mb-2">Itens do Pedido</p>
           <div className="space-y-1">
-            {order.items.map((item: any, idx: number) => (
-              <p key={idx} className="text-sm text-foreground">
-                {item.quantity}x {item.product.name} — R$ {money(item.priceType === 'resale' ? item.product.priceResale : item.product.priceNormal)}
-              </p>
-            ))}
+            {safeItems.map((item: any, idx: number) => {
+              const productName = item?.product?.name || item?.name || 'Produto';
+              const quantity = Number(item?.quantity || 0);
+              const itemPrice =
+                item?.priceType === 'resale'
+                  ? item?.product?.priceResale
+                  : item?.product?.priceNormal;
+
+              return (
+                <p key={idx} className="text-sm text-foreground">
+                  {quantity}x {productName} — R$ {money(itemPrice)}
+                </p>
+              );
+            })}
           </div>
         </div>
       )}
+
       <div className="mt-4 pt-4 border-t border-border">
         <p className="text-xs text-muted-foreground mb-2">Rastreio</p>
         <div className="flex flex-wrap gap-2">
@@ -886,7 +934,17 @@ const OrderCard = ({ order, onStatusChange, onTrackingSave }: { order: any; onSt
             className="w-36 border border-border rounded-sm py-1.5 px-3 text-sm bg-background focus:outline-none focus:border-primary"
             placeholder="Transportadora"
           />
-          <button type="button" onClick={() => onTrackingSave(order.id, tracking, carrier)} className="gold-gradient text-primary-foreground px-4 py-1.5 text-sm font-medium">SALVAR</button>
+          <button
+            type="button"
+            onClick={() => {
+              if (order?.id) {
+                onTrackingSave(order.id, tracking, carrier);
+              }
+            }}
+            className="gold-gradient text-primary-foreground px-4 py-1.5 text-sm font-medium"
+          >
+            SALVAR
+          </button>
         </div>
       </div>
     </div>
