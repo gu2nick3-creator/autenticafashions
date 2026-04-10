@@ -18,6 +18,8 @@ const adminTabs = [
   { id: 'pedidos', label: 'Pedidos', icon: ShoppingCart },
 ];
 
+const money = (value: unknown) => Number(value || 0).toFixed(2);
+
 const emptyProduct = {
   sku: '', name: '', description: '', category: '', subcategory: '',
   priceNormal: '', priceResale: '', stock: '',
@@ -69,7 +71,14 @@ const AdminPanel = () => {
   if (!isAuthenticated || !isAdmin) return <Navigate to="/login" />;
 
   const loadData = () => {
-    adminService.getDashboard().then(setDashboard).catch(() => {});
+    adminService.getDashboard().then((data: any) => {
+      setDashboard({
+        totalRevenue: Number(data?.totalRevenue || 0),
+        paidOrders: Number(data?.paidOrders || 0),
+        pendingOrders: Number(data?.pendingOrders || 0),
+        totalOrders: Number(data?.totalOrders || 0),
+      });
+    }).catch(() => {});
     adminService.getProducts().then(setProductsList).catch(() => {});
     adminService.getOrders().then(setOrdersList).catch(() => {});
     adminService.getCategories().then(setCategoriesList).catch(() => {});
@@ -360,7 +369,7 @@ const AdminPanel = () => {
             <h2 className="font-display text-2xl font-semibold text-foreground">Faturamento</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Faturamento Total', value: `R$ ${dashboard.totalRevenue.toFixed(2)}`, color: 'gold-gradient text-primary-foreground' },
+                { label: 'Faturamento Total', value: `R$ ${money(dashboard.totalRevenue)}`, color: 'gold-gradient text-primary-foreground' },
                 { label: 'Pedidos Pagos', value: dashboard.paidOrders.toString(), color: 'bg-card border border-border text-foreground' },
                 { label: 'Pedidos Pendentes', value: dashboard.pendingOrders.toString(), color: 'bg-card border border-border text-foreground' },
                 { label: 'Total de Pedidos', value: dashboard.totalOrders.toString(), color: 'bg-card border border-border text-foreground' },
@@ -553,8 +562,8 @@ const AdminPanel = () => {
                         <td className="px-4 py-3 text-muted-foreground">{p.sku}</td>
                         <td className="px-4 py-3 text-foreground font-medium">{p.name}</td>
                         <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{p.category}</td>
-                        <td className="px-4 py-3">R$ {p.priceNormal.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-primary">R$ {p.priceResale.toFixed(2)}</td>
+                        <td className="px-4 py-3">R$ {money(p.priceNormal)}</td>
+                        <td className="px-4 py-3 text-primary">R$ {money(p.priceResale)}</td>
                         <td className="px-4 py-3">{p.stock}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
@@ -779,7 +788,7 @@ const AdminPanel = () => {
                     <span className={`text-xs px-2 py-1 rounded-sm ${c.active ? 'gold-gradient text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{c.active ? 'Ativo' : 'Inativo'}</span>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-1">
-                    <p>Desconto: {c.type === 'percentage' ? `${c.discount}%` : `R$ ${c.discount.toFixed(2)}`}</p>
+                    <p>Desconto: {c.type === 'percentage' ? `${c.discount}%` : `R$ ${money(c.discount)}`}</p>
                     <p>Usos: {c.currentUses}/{c.maxUses} • Limite/cliente: {c.usesPerClient}</p>
                     <p>Validade: {c.validUntil}</p>
                   </div>
@@ -846,7 +855,7 @@ const OrderCard = ({ order, onStatusChange, onTrackingSave }: { order: any; onSt
         </div>
         <div>
           <p className="text-xs text-muted-foreground mb-1">Valor</p>
-          <p className="text-foreground font-semibold text-lg">R$ {order.total.toFixed(2)}</p>
+          <p className="text-foreground font-semibold text-lg">R$ {money(order.total)}</p>
           <p className="text-xs text-primary">{order.priceType === 'resale' ? 'Revenda' : 'Normal'}</p>
         </div>
       </div>
@@ -856,7 +865,7 @@ const OrderCard = ({ order, onStatusChange, onTrackingSave }: { order: any; onSt
           <div className="space-y-1">
             {order.items.map((item: any, idx: number) => (
               <p key={idx} className="text-sm text-foreground">
-                {item.quantity}x {item.product.name} — R$ {(item.priceType === 'resale' ? item.product.priceResale : item.product.priceNormal).toFixed(2)}
+                {item.quantity}x {item.product.name} — R$ {money(item.priceType === 'resale' ? item.product.priceResale : item.product.priceNormal)}
               </p>
             ))}
           </div>
