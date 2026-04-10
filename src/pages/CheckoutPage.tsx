@@ -5,14 +5,42 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { couponService } from '@/services/coupons';
 import { orderService } from '@/services/orders';
+import { ShippingMethod } from '@/types';
 import { toast } from 'sonner';
-import { CreditCard, Tag } from 'lucide-react';
+import { CreditCard, Tag, Truck } from 'lucide-react';
+
+const SHIPPING_OPTIONS: {
+  id: ShippingMethod;
+  label: string;
+  description: string;
+  price: number;
+}[] = [
+  {
+    id: 'padrao',
+    label: 'Entrega Padrão',
+    description: 'Prazo normal de entrega',
+    price: 19.9,
+  },
+  {
+    id: 'expressa',
+    label: 'Entrega Expressa',
+    description: 'Entrega prioritária',
+    price: 29.9,
+  },
+  {
+    id: 'retirada',
+    label: 'Retirada no local',
+    description: 'Retire sem custo',
+    price: 0,
+  },
+];
 
 const CheckoutPage = () => {
   const { items, totalPrice, couponCode, setCouponCode, discount, setDiscount, clearCart } = useCart();
   const { user } = useAuth();
   const [couponInput, setCouponInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('padrao');
   const [address, setAddress] = useState({
     street: '',
     number: '',
@@ -22,6 +50,11 @@ const CheckoutPage = () => {
     state: '',
     zip: '',
   });
+
+  const selectedShipping =
+    SHIPPING_OPTIONS.find((option) => option.id === shippingMethod) || SHIPPING_OPTIONS[0];
+
+  const shippingPrice = selectedShipping.price;
 
   const applyCoupon = async () => {
     try {
@@ -48,7 +81,7 @@ const CheckoutPage = () => {
   };
 
   const handleFinalize = async () => {
-    if (!address.street || !address.city || !address.zip) {
+    if (shippingMethod !== 'retirada' && (!address.street || !address.city || !address.zip)) {
       toast.error('Preencha o endereço de entrega');
       return;
     }
@@ -61,7 +94,7 @@ const CheckoutPage = () => {
     setSubmitting(true);
 
     try {
-      const finalTotal = totalPrice - discount;
+      const finalTotal = totalPrice - discount + shippingPrice;
 
       if (finalTotal <= 0) {
         toast.error('O total do pedido está inválido');
@@ -89,8 +122,16 @@ const CheckoutPage = () => {
         };
       });
 
+      if (shippingPrice > 0) {
+        checkoutItems.push({
+          quantity: 1,
+          price: shippingPrice,
+          description: `Frete - ${selectedShipping.label}`,
+        });
+      }
+
       const invalidItem = checkoutItems.find(
-        (item) => item.quantity <= 0 || item.price <= 0 || !item.description
+        (item) => item.quantity <= 0 || item.price < 0 || !item.description
       );
 
       if (invalidItem) {
@@ -105,6 +146,8 @@ const CheckoutPage = () => {
         priceType: items.some((i) => i.priceType === 'resale') ? 'resale' : 'normal',
         subtotal: totalPrice,
         discount,
+        shippingMethod,
+        shippingPrice,
         total: finalTotal,
         customer: {
           name: user.name,
@@ -136,7 +179,7 @@ const CheckoutPage = () => {
     }
   };
 
-  const finalTotal = totalPrice - discount;
+  const finalTotal = totalPrice - discount + shippingPrice;
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,39 +211,88 @@ const CheckoutPage = () => {
             </div>
 
             <div className="bg-card border border-border rounded-sm p-6">
-              <h2 className="font-display text-lg font-medium text-foreground mb-4">
-                Endereço de Entrega
+              <h2 className="font-display text-lg font-medium text-foreground mb-4 flex items-center gap-2">
+                <Truck size={18} className="text-primary" /> Modalidade de Envio
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {[
-                  { key: 'zip', label: 'CEP', placeholder: '00000-000' },
-                  { key: 'street', label: 'Rua', placeholder: 'Nome da rua' },
-                  { key: 'number', label: 'Número', placeholder: '000' },
-                  { key: 'complement', label: 'Complemento', placeholder: 'Apto, bloco...' },
-                  { key: 'neighborhood', label: 'Bairro', placeholder: 'Bairro' },
-                  { key: 'city', label: 'Cidade', placeholder: 'Cidade' },
-                  { key: 'state', label: 'Estado', placeholder: 'SP' },
-                ].map((f) => (
-                  <div key={f.key}>
-                    <label className="text-xs font-medium text-foreground tracking-wide">
-                      {f.label}
-                    </label>
-                    <input
-                      value={(address as any)[f.key]}
-                      onChange={(e) =>
-                        setAddress((prev) => ({
-                          ...prev,
-                          [f.key]: e.target.value,
-                        }))
-                      }
-                      className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
-                      placeholder={f.placeholder}
-                    />
-                  </div>
+              <div className="space-y-3">
+                {SHIPPING_OPTIONS.map((option) => (
+                  <label
+                    key={option.id}
+                    className={`flex items-start justify-between gap-4 border rounded-sm p-4 cursor-pointer transition-colors ${
+                      shippingMethod === option.id
+                        ? 'border-primary bg-cream'
+                        : 'border-border hover:border-primary'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="shippingMethod"
+                        checked={shippingMethod === option.id}
+                        onChange={() => setShippingMethod(option.id)}
+                        className="mt-1 accent-primary"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{option.label}</p>
+                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-foreground">
+                      {option.price === 0 ? 'Grátis' : `R$ ${option.price.toFixed(2)}`}
+                    </span>
+                  </label>
                 ))}
               </div>
             </div>
+
+            {shippingMethod !== 'retirada' && (
+              <div className="bg-card border border-border rounded-sm p-6">
+                <h2 className="font-display text-lg font-medium text-foreground mb-4">
+                  Endereço de Entrega
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    { key: 'zip', label: 'CEP', placeholder: '00000-000' },
+                    { key: 'street', label: 'Rua', placeholder: 'Nome da rua' },
+                    { key: 'number', label: 'Número', placeholder: '000' },
+                    { key: 'complement', label: 'Complemento', placeholder: 'Apto, bloco...' },
+                    { key: 'neighborhood', label: 'Bairro', placeholder: 'Bairro' },
+                    { key: 'city', label: 'Cidade', placeholder: 'Cidade' },
+                    { key: 'state', label: 'Estado', placeholder: 'SP' },
+                  ].map((f) => (
+                    <div key={f.key}>
+                      <label className="text-xs font-medium text-foreground tracking-wide">
+                        {f.label}
+                      </label>
+                      <input
+                        value={(address as any)[f.key]}
+                        onChange={(e) =>
+                          setAddress((prev) => ({
+                            ...prev,
+                            [f.key]: e.target.value,
+                          }))
+                        }
+                        className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
+                        placeholder={f.placeholder}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {shippingMethod === 'retirada' && (
+              <div className="bg-card border border-border rounded-sm p-6">
+                <h2 className="font-display text-lg font-medium text-foreground mb-2">
+                  Retirada no local
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Como você escolheu retirada no local, não é necessário preencher endereço de entrega.
+                </p>
+              </div>
+            )}
 
             <div className="bg-card border border-border rounded-sm p-6">
               <h2 className="font-display text-lg font-medium text-foreground mb-4 flex items-center gap-2">
@@ -215,6 +307,7 @@ const CheckoutPage = () => {
                   placeholder="Código do cupom"
                 />
                 <button
+                  type="button"
                   onClick={applyCoupon}
                   className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium"
                 >
@@ -274,6 +367,16 @@ const CheckoutPage = () => {
                 </div>
               )}
 
+              <div className="flex justify-between text-muted-foreground">
+                <span>Envio</span>
+                <span>{shippingPrice === 0 ? 'Grátis' : `R$ ${shippingPrice.toFixed(2)}`}</span>
+              </div>
+
+              <div className="flex justify-between text-muted-foreground">
+                <span>Modalidade</span>
+                <span>{selectedShipping.label}</span>
+              </div>
+
               <div className="flex justify-between font-semibold text-foreground text-base pt-2 border-t border-border">
                 <span>Total</span>
                 <span>R$ {finalTotal.toFixed(2)}</span>
@@ -293,6 +396,7 @@ const CheckoutPage = () => {
             </div>
 
             <button
+              type="button"
               onClick={handleFinalize}
               disabled={submitting}
               className="w-full gold-gradient text-primary-foreground py-3 font-medium text-sm tracking-wider mt-6 hover:opacity-90 transition-opacity disabled:opacity-50"
