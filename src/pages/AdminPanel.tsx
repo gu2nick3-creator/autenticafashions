@@ -194,12 +194,17 @@ const AdminPanel = () => {
 
   const handleEditCategory = (category: Category) => {
     setCategoryForm({
-      name: category.name,
+      name: category.name || '',
       subcategory: category.subcategories?.[0]?.name || '',
       image: category.image || '',
     });
     setEditingCategoryId(category.id);
     setShowAddCategory(true);
+
+    setTimeout(() => {
+      const form = document.getElementById('category-form-card');
+      form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   const addColor = () => {
@@ -340,6 +345,7 @@ const AdminPanel = () => {
           {adminTabs.map(tab => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 text-sm rounded-sm transition-all ${activeTab === tab.id ? 'gold-gradient text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary'}`}
             >
@@ -372,7 +378,7 @@ const AdminPanel = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-2xl font-semibold text-foreground">Produtos</h2>
-              <button onClick={() => { resetProductForm(); setShowProductForm(true); }} className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
+              <button type="button" onClick={() => { resetProductForm(); setShowProductForm(true); }} className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
                 <Plus size={16} /> Adicionar Produto
               </button>
             </div>
@@ -435,8 +441,8 @@ const AdminPanel = () => {
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Tipo de Produto</label>
                   <div className="flex gap-3">
-                    <button onClick={() => setProductForm(prev => ({ ...prev, type: 'roupas' }))} className={`px-4 py-2 text-sm border rounded-sm ${productForm.type === 'roupas' ? 'border-primary bg-cream text-primary' : 'border-border text-muted-foreground'}`}>Roupas</button>
-                    <button onClick={() => setProductForm(prev => ({ ...prev, type: 'sapatos' }))} className={`px-4 py-2 text-sm border rounded-sm ${productForm.type === 'sapatos' ? 'border-primary bg-cream text-primary' : 'border-border text-muted-foreground'}`}>Sapatos</button>
+                    <button type="button" onClick={() => setProductForm(prev => ({ ...prev, type: 'roupas' }))} className={`px-4 py-2 text-sm border rounded-sm ${productForm.type === 'roupas' ? 'border-primary bg-cream text-primary' : 'border-border text-muted-foreground'}`}>Roupas</button>
+                    <button type="button" onClick={() => setProductForm(prev => ({ ...prev, type: 'sapatos' }))} className={`px-4 py-2 text-sm border rounded-sm ${productForm.type === 'sapatos' ? 'border-primary bg-cream text-primary' : 'border-border text-muted-foreground'}`}>Sapatos</button>
                   </div>
                 </div>
 
@@ -476,7 +482,7 @@ const AdminPanel = () => {
                       className="flex-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
                       placeholder="Digite o nome da cor e pressione Enter ou clique +"
                     />
-                    <button onClick={addColor} className="gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
+                    <button type="button" onClick={addColor} className="gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
                       <Plus size={16} />
                     </button>
                   </div>
@@ -485,7 +491,7 @@ const AdminPanel = () => {
                       {productForm.colors.map(c => (
                         <span key={c.name} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-cream border border-border rounded-sm text-foreground">
                           {c.name}
-                          <button onClick={() => removeColor(c.name)} className="text-muted-foreground hover:text-destructive ml-1"><X size={12} /></button>
+                          <button type="button" onClick={() => removeColor(c.name)} className="text-muted-foreground hover:text-destructive ml-1"><X size={12} /></button>
                         </span>
                       ))}
                     </div>
@@ -496,10 +502,10 @@ const AdminPanel = () => {
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Imagens</label>
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                   <div className="flex gap-3">
-                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 border border-border rounded-sm px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 border border-border rounded-sm px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors">
                       <Upload size={18} /> Selecionar Arquivo
                     </button>
-                    <button onClick={() => { if (fileInputRef.current) { fileInputRef.current.capture = 'environment'; fileInputRef.current.click(); } }} className="flex items-center gap-2 border border-border rounded-sm px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors md:hidden">
+                    <button type="button" onClick={() => { if (fileInputRef.current) { fileInputRef.current.capture = 'environment'; fileInputRef.current.click(); } }} className="flex items-center gap-2 border border-border rounded-sm px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors md:hidden">
                       <Camera size={18} /> Tirar Foto
                     </button>
                   </div>
@@ -508,7 +514,7 @@ const AdminPanel = () => {
                       {productForm.images.map((img, i) => (
                         <div key={i} className="relative w-16 h-16 border border-border rounded-sm overflow-hidden">
                           <img src={img} alt="" className="w-full h-full object-cover" />
-                          <button onClick={() => setProductForm(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }))} className="absolute top-0 right-0 bg-destructive text-white p-0.5"><X size={10} /></button>
+                          <button type="button" onClick={() => setProductForm(prev => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }))} className="absolute top-0 right-0 bg-destructive text-white p-0.5"><X size={10} /></button>
                         </div>
                       ))}
                     </div>
@@ -516,10 +522,10 @@ const AdminPanel = () => {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button onClick={handleSaveProduct} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">
+                  <button type="button" onClick={handleSaveProduct} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">
                     {editingProductId ? 'ATUALIZAR PRODUTO' : 'SALVAR PRODUTO'}
                   </button>
-                  <button onClick={resetProductForm} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
+                  <button type="button" onClick={resetProductForm} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
                 </div>
               </div>
             )}
@@ -552,8 +558,8 @@ const AdminPanel = () => {
                         <td className="px-4 py-3">{p.stock}</td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
-                            <button onClick={() => handleEditProduct(p)} className="text-muted-foreground hover:text-primary" title="Editar"><Edit size={14} /></button>
-                            <button onClick={() => handleDeleteProduct(p.id)} className="text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={14} /></button>
+                            <button type="button" onClick={() => handleEditProduct(p)} className="text-muted-foreground hover:text-primary" title="Editar"><Edit size={14} /></button>
+                            <button type="button" onClick={() => handleDeleteProduct(p.id)} className="text-muted-foreground hover:text-destructive" title="Excluir"><Trash2 size={14} /></button>
                           </div>
                         </td>
                       </tr>
@@ -569,28 +575,57 @@ const AdminPanel = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-2xl font-semibold text-foreground">Categorias</h2>
-              <button onClick={() => { if (showAddCategory) { resetCategoryForm(); } else { setShowAddCategory(true); } }} className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => {
+                  if (showAddCategory) {
+                    resetCategoryForm();
+                  } else {
+                    setShowAddCategory(true);
+                    setEditingCategoryId(null);
+                    setCategoryForm({ name: '', subcategory: '', image: '' });
+                  }
+                }}
+                className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium"
+              >
                 <Plus size={16} /> Nova Categoria
               </button>
             </div>
 
             {showAddCategory && (
-              <div className="bg-card border border-border rounded-sm p-6 space-y-4">
+              <div id="category-form-card" className="bg-card border border-border rounded-sm p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-lg font-medium text-foreground">
+                    {editingCategoryId ? 'Editar Categoria' : 'Nova Categoria'}
+                  </h3>
+                  {editingCategoryId && (
+                    <span className="text-xs text-primary font-medium">Modo edição</span>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-foreground tracking-wide">Nome da Categoria</label>
-                    <input value={categoryForm.name} onChange={e => setCategoryForm(p => ({ ...p, name: e.target.value }))} className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary" />
+                    <input
+                      value={categoryForm.name}
+                      onChange={e => setCategoryForm(p => ({ ...p, name: e.target.value }))}
+                      className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-foreground tracking-wide">Subcategoria (opcional)</label>
-                    <input value={categoryForm.subcategory} onChange={e => setCategoryForm(p => ({ ...p, subcategory: e.target.value }))} className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary" />
+                    <input
+                      value={categoryForm.subcategory}
+                      onChange={e => setCategoryForm(p => ({ ...p, subcategory: e.target.value }))}
+                      className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
+                    />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Imagem da Categoria</label>
                   <input type="file" ref={categoryFileInputRef} onChange={handleCategoryImageUpload} accept="image/*" className="hidden" />
-                  <button onClick={() => categoryFileInputRef.current?.click()} className="flex items-center gap-2 border border-border rounded-sm px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors">
+                  <button type="button" onClick={() => categoryFileInputRef.current?.click()} className="flex items-center gap-2 border border-border rounded-sm px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors">
                     <Upload size={18} /> Selecionar Imagem
                   </button>
                   {categoryForm.image && (
@@ -601,10 +636,10 @@ const AdminPanel = () => {
                 </div>
 
                 <div className="flex gap-3">
-                  <button onClick={handleSaveCategory} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">
+                  <button type="button" onClick={handleSaveCategory} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">
                     {editingCategoryId ? 'ATUALIZAR' : 'SALVAR'}
                   </button>
-                  <button onClick={resetCategoryForm} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
+                  <button type="button" onClick={resetCategoryForm} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
                 </div>
               </div>
             )}
@@ -615,8 +650,22 @@ const AdminPanel = () => {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-display text-base font-medium text-foreground">{cat.name}</h3>
                     <div className="flex gap-2">
-                      <button onClick={() => handleEditCategory(cat)} className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
-                      <button onClick={() => handleDeleteCategory(cat.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                      <button
+                        type="button"
+                        onClick={() => handleEditCategory(cat)}
+                        className="text-muted-foreground hover:text-primary cursor-pointer"
+                        title="Editar"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="text-muted-foreground hover:text-destructive cursor-pointer"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                   {cat.image && (
@@ -625,10 +674,9 @@ const AdminPanel = () => {
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2">
-                    {cat.subcategories.map(sub => (
+                    {cat.subcategories?.map(sub => (
                       <span key={sub.id} className="text-xs px-3 py-1 bg-cream border border-border rounded-sm text-muted-foreground flex items-center gap-1">
                         {sub.name}
-                        <button className="text-muted-foreground hover:text-destructive"><Trash2 size={10} /></button>
                       </span>
                     ))}
                   </div>
@@ -664,7 +712,7 @@ const AdminPanel = () => {
                         <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{c.phone}</td>
                         <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{c.createdAt}</td>
                         <td className="px-4 py-3">
-                          <button className="text-muted-foreground hover:text-primary"><Eye size={14} /></button>
+                          <button type="button" className="text-muted-foreground hover:text-primary"><Eye size={14} /></button>
                         </td>
                       </tr>
                     ))}
@@ -679,7 +727,7 @@ const AdminPanel = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-2xl font-semibold text-foreground">Cupons</h2>
-              <button onClick={() => setShowAddCoupon(!showAddCoupon)} className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
+              <button type="button" onClick={() => setShowAddCoupon(!showAddCoupon)} className="flex items-center gap-2 gold-gradient text-primary-foreground px-4 py-2 text-sm font-medium">
                 <Plus size={16} /> Novo Cupom
               </button>
             </div>
@@ -714,8 +762,8 @@ const AdminPanel = () => {
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={handleSaveCoupon} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">SALVAR</button>
-                  <button onClick={() => setShowAddCoupon(false)} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
+                  <button type="button" onClick={handleSaveCoupon} className="gold-gradient text-primary-foreground px-6 py-2 text-sm font-medium">SALVAR</button>
+                  <button type="button" onClick={() => setShowAddCoupon(false)} className="border border-border text-foreground px-6 py-2 text-sm">CANCELAR</button>
                 </div>
               </div>
             )}
@@ -736,8 +784,8 @@ const AdminPanel = () => {
                     <p>Validade: {c.validUntil}</p>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
-                    <button onClick={() => handleDeleteCoupon(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
+                    <button type="button" className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
+                    <button type="button" onClick={() => handleDeleteCoupon(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
                 </div>
               ))}
@@ -829,7 +877,7 @@ const OrderCard = ({ order, onStatusChange, onTrackingSave }: { order: any; onSt
             className="w-36 border border-border rounded-sm py-1.5 px-3 text-sm bg-background focus:outline-none focus:border-primary"
             placeholder="Transportadora"
           />
-          <button onClick={() => onTrackingSave(order.id, tracking, carrier)} className="gold-gradient text-primary-foreground px-4 py-1.5 text-sm font-medium">SALVAR</button>
+          <button type="button" onClick={() => onTrackingSave(order.id, tracking, carrier)} className="gold-gradient text-primary-foreground px-4 py-1.5 text-sm font-medium">SALVAR</button>
         </div>
       </div>
     </div>
