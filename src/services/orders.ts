@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import { Order, Address, CartItem } from '@/types';
+import { Order, Address, CartItem, ShippingMethod } from '@/types';
 
 interface CheckoutCustomer {
   name: string;
@@ -20,6 +20,8 @@ interface CreateOrderData {
   priceType: 'normal' | 'resale';
   subtotal: number;
   discount: number;
+  shippingMethod: ShippingMethod;
+  shippingPrice: number;
   total: number;
   customer?: CheckoutCustomer;
   paymentItems?: PaymentItem[];
@@ -48,6 +50,8 @@ export const orderService = {
       priceType: data.priceType,
       subtotal: data.subtotal,
       discount: data.discount,
+      shippingMethod: data.shippingMethod,
+      shippingPrice: data.shippingPrice,
       total: data.total,
     });
 
