@@ -45,14 +45,18 @@ const AdminPanel = () => {
   const [productForm, setProductForm] = useState({ ...emptyProduct });
   const [dashboard, setDashboard] = useState({ totalRevenue: 0, paidOrders: 0, pendingOrders: 0, totalOrders: 0 });
 
-  // Category form
   const [categoryForm, setCategoryForm] = useState({ name: '', subcategory: '', image: '' });
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
 
-  // Coupon form
-  const [couponForm, setCouponForm] = useState({ code: '', discount: '', maxUses: '', usesPerClient: '', validUntil: '', type: 'percentage' as 'percentage' | 'value' });
+  const [couponForm, setCouponForm] = useState({
+    code: '',
+    discount: '',
+    maxUses: '',
+    usesPerClient: '',
+    validUntil: '',
+    type: 'percentage' as 'percentage' | 'value',
+  });
 
-  // Image upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,6 +113,7 @@ const AdminPanel = () => {
       toast.error('Preencha nome e preço!');
       return;
     }
+
     const productData: Partial<Product> = {
       sku: productForm.sku,
       name: productForm.name,
@@ -123,7 +128,9 @@ const AdminPanel = () => {
       active: productForm.active,
       type: productForm.type,
       colors: productForm.colors,
-      sizes: productForm.type === 'roupas' ? productForm.clothingSizes : productForm.shoeSizes.split(',').map(s => s.trim()).filter(Boolean),
+      sizes: productForm.type === 'roupas'
+        ? productForm.clothingSizes
+        : productForm.shoeSizes.split(',').map(s => s.trim()).filter(Boolean),
       images: productForm.images,
     };
 
@@ -156,6 +163,7 @@ const AdminPanel = () => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     try {
       const { url } = await adminService.uploadImage(file);
       setProductForm(prev => ({ ...prev, images: [...prev.images, url] }));
@@ -197,7 +205,11 @@ const AdminPanel = () => {
   const addColor = () => {
     const c = productForm.colorInput.trim();
     if (c && !productForm.colors.some(pc => pc.name === c)) {
-      setProductForm(prev => ({ ...prev, colors: [...prev.colors, { name: c, hex: '' }], colorInput: '' }));
+      setProductForm(prev => ({
+        ...prev,
+        colors: [...prev.colors, { name: c, hex: '' }],
+        colorInput: '',
+      }));
     }
   };
 
@@ -208,7 +220,9 @@ const AdminPanel = () => {
   const toggleClothingSize = (size: string) => {
     setProductForm(prev => ({
       ...prev,
-      clothingSizes: prev.clothingSizes.includes(size) ? prev.clothingSizes.filter(s => s !== size) : [...prev.clothingSizes, size],
+      clothingSizes: prev.clothingSizes.includes(size)
+        ? prev.clothingSizes.filter(s => s !== size)
+        : [...prev.clothingSizes, size],
     }));
   };
 
@@ -272,7 +286,11 @@ const AdminPanel = () => {
   };
 
   const handleSaveCoupon = async () => {
-    if (!couponForm.code) { toast.error('Preencha o código'); return; }
+    if (!couponForm.code) {
+      toast.error('Preencha o código');
+      return;
+    }
+
     try {
       const created = await adminService.createCoupon({
         code: couponForm.code.toUpperCase(),
@@ -305,7 +323,6 @@ const AdminPanel = () => {
 
   return (
     <div className="min-h-screen bg-cream">
-      {/* Header */}
       <div className="bg-card border-b border-border">
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -319,7 +336,6 @@ const AdminPanel = () => {
       </div>
 
       <div className="container py-6">
-        {/* Tab nav */}
         <div className="flex flex-wrap gap-2 mb-6">
           {adminTabs.map(tab => (
             <button
@@ -333,7 +349,6 @@ const AdminPanel = () => {
           ))}
         </div>
 
-        {/* Faturamento */}
         {activeTab === 'faturamento' && (
           <div className="space-y-6">
             <h2 className="font-display text-2xl font-semibold text-foreground">Faturamento</h2>
@@ -353,7 +368,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Produtos */}
         {activeTab === 'produtos' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -368,6 +382,7 @@ const AdminPanel = () => {
                 <h3 className="font-display text-lg font-medium text-foreground">
                   {editingProductId ? 'Editar Produto' : 'Novo Produto'}
                 </h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
                     { key: 'sku', label: 'SKU' },
@@ -398,7 +413,6 @@ const AdminPanel = () => {
                   />
                 </div>
 
-                {/* Toggles */}
                 <div className="flex flex-wrap gap-4">
                   {[
                     { key: 'active', label: 'Ativo' },
@@ -418,7 +432,6 @@ const AdminPanel = () => {
                   ))}
                 </div>
 
-                {/* Product type */}
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Tipo de Produto</label>
                   <div className="flex gap-3">
@@ -427,19 +440,19 @@ const AdminPanel = () => {
                   </div>
                 </div>
 
-                {/* Sizes */}
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Tamanhos</label>
                   {productForm.type === 'roupas' ? (
-                    {cat.image && (
-                    <div className="mb-3">
-                      <img src={cat.image} alt={cat.name} className="w-24 h-32 object-cover border border-border rounded-sm" />
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {['PP', 'P', 'M', 'G', 'GG', 'XG', 'XGG'].map(s => (
                         <label key={s} className={`flex items-center gap-1 text-sm border rounded-sm px-3 py-1.5 cursor-pointer transition-colors ${productForm.clothingSizes.includes(s) ? 'border-primary bg-cream text-primary' : 'border-border text-foreground hover:border-primary'}`}>
-                          <input type="checkbox" className="accent-primary" checked={productForm.clothingSizes.includes(s)} onChange={() => toggleClothingSize(s)} /> {s}
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            checked={productForm.clothingSizes.includes(s)}
+                            onChange={() => toggleClothingSize(s)}
+                          />
+                          {s}
                         </label>
                       ))}
                     </div>
@@ -453,7 +466,6 @@ const AdminPanel = () => {
                   )}
                 </div>
 
-                {/* Colors - manual input */}
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Cores</label>
                   <div className="flex gap-2 mb-3">
@@ -469,12 +481,7 @@ const AdminPanel = () => {
                     </button>
                   </div>
                   {productForm.colors.length > 0 && (
-                    {cat.image && (
-                    <div className="mb-3">
-                      <img src={cat.image} alt={cat.name} className="w-24 h-32 object-cover border border-border rounded-sm" />
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {productForm.colors.map(c => (
                         <span key={c.name} className="flex items-center gap-1 text-xs px-3 py-1.5 bg-cream border border-border rounded-sm text-foreground">
                           {c.name}
@@ -485,7 +492,6 @@ const AdminPanel = () => {
                   )}
                 </div>
 
-                {/* Images */}
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Imagens</label>
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
@@ -518,7 +524,6 @@ const AdminPanel = () => {
               </div>
             )}
 
-            {/* Product list */}
             <div className="bg-card border border-border rounded-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -560,7 +565,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Categorias */}
         {activeTab === 'categorias' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -582,6 +586,7 @@ const AdminPanel = () => {
                     <input value={categoryForm.subcategory} onChange={e => setCategoryForm(p => ({ ...p, subcategory: e.target.value }))} className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary" />
                   </div>
                 </div>
+
                 <div>
                   <label className="text-xs font-medium text-foreground tracking-wide mb-2 block">Imagem da Categoria</label>
                   <input type="file" ref={categoryFileInputRef} onChange={handleCategoryImageUpload} accept="image/*" className="hidden" />
@@ -633,7 +638,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Clientes */}
         {activeTab === 'clientes' && (
           <div className="space-y-6">
             <h2 className="font-display text-2xl font-semibold text-foreground">Clientes</h2>
@@ -671,7 +675,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Cupons */}
         {activeTab === 'cupons' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -733,7 +736,7 @@ const AdminPanel = () => {
                     <p>Validade: {c.validUntil}</p>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <button onClick={() => handleEditCategory(cat)} className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
+                    <button className="text-muted-foreground hover:text-primary"><Edit size={14} /></button>
                     <button onClick={() => handleDeleteCoupon(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
                   </div>
                 </div>
@@ -742,7 +745,6 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* Pedidos */}
         {activeTab === 'pedidos' && (
           <div className="space-y-6">
             <h2 className="font-display text-2xl font-semibold text-foreground">Pedidos</h2>
@@ -800,7 +802,6 @@ const OrderCard = ({ order, onStatusChange, onTrackingSave }: { order: any; onSt
           <p className="text-xs text-primary">{order.priceType === 'resale' ? 'Revenda' : 'Normal'}</p>
         </div>
       </div>
-      {/* Items */}
       {order.items && order.items.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground mb-2">Itens do Pedido</p>
@@ -813,7 +814,6 @@ const OrderCard = ({ order, onStatusChange, onTrackingSave }: { order: any; onSt
           </div>
         </div>
       )}
-      {/* Tracking */}
       <div className="mt-4 pt-4 border-t border-border">
         <p className="text-xs text-muted-foreground mb-2">Rastreio</p>
         <div className="flex flex-wrap gap-2">
