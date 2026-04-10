@@ -64,6 +64,8 @@ export interface Address {
   zip: string;
 }
 
+export type ShippingMethod = 'padrao' | 'expressa' | 'retirada';
+
 export interface Order {
   id: string;
   userId: string;
@@ -75,6 +77,8 @@ export interface Order {
   priceType: 'normal' | 'resale';
   subtotal: number;
   discount: number;
+  shippingMethod: ShippingMethod;
+  shippingPrice: number;
   total: number;
   couponCode?: string;
   status: OrderStatus;
