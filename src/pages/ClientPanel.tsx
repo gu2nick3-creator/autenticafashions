@@ -16,7 +16,7 @@ const tabs = [
 ];
 
 const ClientPanel = () => {
-  const { user, isAuthenticated, updateUser, logout } = useAuth();
+  const { user, isAuthenticated, updateUser, logout, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dados');
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '', cpfCnpj: user?.cpfCnpj || '' });
@@ -26,6 +26,7 @@ const ClientPanel = () => {
     orderService.getMyOrders().then(setOrders).catch(() => {});
   }, []);
 
+  if (authLoading) return null;
   if (!isAuthenticated) return <Navigate to="/login" />;
 
   const handleSave = async () => {

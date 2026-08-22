@@ -1,16 +1,11 @@
-import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { Order, Address, CartItem, ShippingMethod } from '@/types';
+import { mapOrder } from '@/lib/mappers';
 
 interface CheckoutCustomer {
   name: string;
   email: string;
   phone_number: string;
-}
-
-interface PaymentItem {
-  quantity: number;
-  price: number;
-  description: string;
 }
 
 interface CreateOrderData {
@@ -24,54 +19,30 @@ interface CreateOrderData {
   shippingPrice: number;
   total: number;
   customer?: CheckoutCustomer;
-  paymentItems?: PaymentItem[];
 }
-
-interface InfinitePayCheckoutResponse {
-  checkout_url: string;
-  provider: string;
-  order_nsu: string;
-  raw?: unknown;
-}
-
-type CreateOrderResult = Order & {
-  checkout_url?: string;
-  payment?: InfinitePayCheckoutResponse;
-};
 
 export const orderService = {
-  getMyOrders: () => api.get<Order[]>('/api/orders/my'),
+  getMyOrders: async (): Promise<Order[]> => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapOrder);
+  },
 
-  create: async (data: CreateOrderData): Promise<CreateOrderResult> => {
-    const orderResponse = await api.post<Order>('/api/orders', {
-      items: data.items,
-      address: data.address,
-      couponCode: data.couponCode,
-      priceType: data.priceType,
-      subtotal: data.subtotal,
-      discount: data.discount,
-      shippingMethod: data.shippingMethod,
-      shippingPrice: data.shippingPrice,
-      total: data.total,
+  create: async (data: CreateOrderData): Promise<Order> => {
+    const { data: row, error } = await supabase.rpc('create_order', {
+      p_items: data.items,
+      p_address: data.address,
+      p_coupon_code: data.couponCode || null,
+      p_shipping_method: data.shippingMethod,
+      p_shipping_price: data.shippingPrice,
+      p_customer_name: data.customer?.name || '',
+      p_customer_email: data.customer?.email || '',
+      p_customer_phone: data.customer?.phone_number || '',
     });
-
-    if (!data.customer || !data.paymentItems || data.paymentItems.length === 0) {
-      return orderResponse as CreateOrderResult;
-    }
-
-    const checkoutResponse = await api.post<InfinitePayCheckoutResponse>(
-      '/api/payments/infinitepay/create-checkout',
-      {
-        items: data.paymentItems,
-        customer: data.customer,
-        order_nsu: `PED-${Date.now()}`,
-      }
-    );
-
-    return {
-      ...(orderResponse as Order),
-      checkout_url: checkoutResponse.checkout_url,
-      payment: checkoutResponse,
-    };
+    if (error) throw new Error(error.message);
+    return mapOrder(row);
   },
 };

@@ -1,10 +1,6 @@
-import { api, setAuthToken } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { User } from '@/types';
-
-interface LoginResponse {
-  user: User;
-  token: string;
-}
+import { mapProfile } from '@/lib/mappers';
 
 interface RegisterData {
   name: string;
@@ -14,32 +10,54 @@ interface RegisterData {
   password: string;
 }
 
+async function fetchProfile(userId: string): Promise<User> {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (error) throw error;
+  return mapProfile(data);
+}
+
 export const authService = {
-  login: async (email: string, password: string): Promise<LoginResponse> => {
-    const data = await api.post<LoginResponse>('/api/auth/login', { email, password });
-    setAuthToken(data.token);
-    return data;
+  login: async (email: string, password: string): Promise<User> => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    if (!data.user) throw new Error('Login falhou');
+    return fetchProfile(data.user.id);
   },
 
-  register: async (data: RegisterData): Promise<LoginResponse> => {
-    const res = await api.post<LoginResponse>('/api/auth/register', data);
-    setAuthToken(res.token);
-    return res;
+  register: async (data: RegisterData): Promise<User> => {
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
+          phone: data.phone || '',
+          cpfCnpj: data.cpfCnpj || '',
+        },
+      },
+    });
+    if (error) throw error;
+    if (!signUpData.user) throw new Error('Cadastro falhou');
+    return fetchProfile(signUpData.user.id);
   },
 
   me: async (): Promise<User> => {
-    return api.get<User>('/api/auth/me');
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error || !user) throw error || new Error('Não autenticado');
+    return fetchProfile(user.id);
   },
 
   logout: async (): Promise<void> => {
-    try {
-      await api.post('/api/auth/logout');
-    } finally {
-      setAuthToken(null);
-    }
+    await supabase.auth.signOut();
   },
 
   forgotPassword: async (email: string): Promise<void> => {
-    await api.post('/api/auth/forgot-password', { email });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    });
+    if (error) throw error;
   },
 };

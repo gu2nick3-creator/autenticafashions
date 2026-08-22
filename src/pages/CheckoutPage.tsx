@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useCart } from '@/contexts/CartContext';
@@ -38,6 +39,7 @@ const SHIPPING_OPTIONS: {
 const CheckoutPage = () => {
   const { items, totalPrice, couponCode, setCouponCode, discount, setDiscount, clearCart } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('padrao');
@@ -101,45 +103,7 @@ const CheckoutPage = () => {
         return;
       }
 
-      const qtyFromDistribution = (distribution?: Record<string, number>) =>
-        Object.values(distribution || {}).reduce((acc, value) => acc + Number(value || 0), 0);
-
-      const checkoutItems = items.map((item) => {
-        const quantity =
-          item.priceType === 'resale'
-            ? qtyFromDistribution(item.sizeDistribution)
-            : Number(item.quantity || 0);
-
-        const price =
-          item.priceType === 'resale'
-            ? Number(item.product.priceResale || 0)
-            : Number(item.product.priceNormal || 0);
-
-        return {
-          quantity,
-          price,
-          description: item.product.name,
-        };
-      });
-
-      if (shippingPrice > 0) {
-        checkoutItems.push({
-          quantity: 1,
-          price: shippingPrice,
-          description: `Frete - ${selectedShipping.label}`,
-        });
-      }
-
-      const invalidItem = checkoutItems.find(
-        (item) => item.quantity <= 0 || item.price < 0 || !item.description
-      );
-
-      if (invalidItem) {
-        toast.error('Há item inválido no carrinho');
-        return;
-      }
-
-      const response = await orderService.create({
+      await orderService.create({
         items,
         address,
         couponCode: couponCode || undefined,
@@ -154,23 +118,11 @@ const CheckoutPage = () => {
           email: user.email,
           phone_number: user.phone,
         },
-        paymentItems: checkoutItems,
       });
 
-      const checkoutUrl =
-        response?.checkout_url ||
-        response?.payment?.checkout_url ||
-        response?.data?.checkout_url;
-
-      if (!checkoutUrl) {
-        console.error('Resposta sem checkout_url:', response);
-        toast.error('A InfinitePay não retornou a URL de pagamento');
-        return;
-      }
-
-      toast.success('Redirecionando para o pagamento...');
+      toast.success('Pedido realizado com sucesso!');
       clearCart();
-      window.location.href = checkoutUrl;
+      navigate('/painel');
     } catch (err: any) {
       console.error('Erro ao finalizar pedido:', err);
       toast.error(err?.message || 'Erro ao finalizar pedido');
@@ -387,11 +339,11 @@ const CheckoutPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard className="text-primary" size={18} />
                 <span className="text-sm font-medium text-foreground">
-                  Pagamento via InfinitePay
+                  Pagamento combinado após confirmação
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Pagamento seguro processado pela InfinitePay
+                Seu pedido ficará em análise e a loja entrará em contato para combinar o pagamento.
               </p>
             </div>
 
@@ -401,7 +353,7 @@ const CheckoutPage = () => {
               disabled={submitting}
               className="w-full gold-gradient text-primary-foreground py-3 font-medium text-sm tracking-wider mt-6 hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {submitting ? 'PROCESSANDO...' : 'FINALIZAR E PAGAR'}
+              {submitting ? 'PROCESSANDO...' : 'FINALIZAR PEDIDO'}
             </button>
           </div>
         </div>

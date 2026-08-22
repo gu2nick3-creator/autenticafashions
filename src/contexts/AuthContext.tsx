@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { User } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { mapProfile } from '@/lib/mappers';
 import { authService } from '@/services/auth';
 import { customerService } from '@/services/customers';
-import { getAuthToken } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -21,38 +22,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount, check if user is already authenticated
-  useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      authService.me()
-        .then(u => setUser(u))
-        .catch(() => setUser(null))
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+  const loadProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    if (error) {
+      setUser(null);
+      return;
     }
+    setUser(mapProfile(data));
   }, []);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadProfile(session.user.id).finally(() => setLoading(false));
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [loadProfile]);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
-      const { user: loggedUser } = await authService.login(email, password);
-      setUser(loggedUser);
+      await authService.login(email, password);
       return true;
     } catch {
       return false;
     }
   }, []);
 
-  const register = useCallback(async (data: { name: string; email: string; phone?: string; cpfCnpj?: string; password: string }): Promise<boolean> => {
-    try {
-      const { user: newUser } = await authService.register(data);
-      setUser(newUser);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+  const register = useCallback(
+    async (data: { name: string; email: string; phone?: string; cpfCnpj?: string; password: string }): Promise<boolean> => {
+      try {
+        await authService.register(data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    []
+  );
 
   const logout = useCallback(async () => {
     await authService.logout();

@@ -33,7 +33,7 @@ const emptyProduct = {
 };
 
 const AdminPanel = () => {
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('faturamento');
   const [showProductForm, setShowProductForm] = useState(false);
   const [showAddCoupon, setShowAddCoupon] = useState(false);
@@ -68,6 +68,7 @@ const AdminPanel = () => {
     }
   }, [isAuthenticated, isAdmin]);
 
+  if (authLoading) return null;
   if (!isAuthenticated || !isAdmin) return <Navigate to="/login" />;
 
   const loadData = () => {
