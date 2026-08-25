@@ -72,7 +72,7 @@ const AdminPanel = () => {
   if (!isAuthenticated || !isAdmin) return <Navigate to="/login" />;
 
   const loadData = () => {
-    adminService.getDashboard().then((data: any) => {
+    adminService.getDashboard().then((data) => {
       setDashboard({
         totalRevenue: Number(data?.totalRevenue || 0),
         paidOrders: Number(data?.paidOrders || 0),
@@ -81,7 +81,7 @@ const AdminPanel = () => {
       });
     }).catch(() => {});
     adminService.getProducts().then(setProductsList).catch(() => {});
-    adminService.getOrders().then((orders: any) => {
+    adminService.getOrders().then((orders) => {
       setOrdersList(Array.isArray(orders) ? orders : []);
     }).catch(() => setOrdersList([]));
     adminService.getCategories().then(setCategoriesList).catch(() => {});
@@ -157,8 +157,8 @@ const AdminPanel = () => {
         toast.success('Produto criado!');
       }
       resetProductForm();
-    } catch (err: any) {
-      toast.error(err?.message || 'Erro ao salvar produto');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar produto');
     }
   };
 
@@ -402,19 +402,21 @@ const AdminPanel = () => {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { key: 'sku', label: 'SKU' },
-                    { key: 'name', label: 'Nome do Produto' },
-                    { key: 'category', label: 'Categoria' },
-                    { key: 'subcategory', label: 'Subcategoria' },
-                    { key: 'priceNormal', label: 'Preço Normal' },
-                    { key: 'priceResale', label: 'Preço Revenda' },
-                    { key: 'stock', label: 'Estoque' },
-                  ].map(f => (
+                  {(
+                    [
+                      { key: 'sku', label: 'SKU' },
+                      { key: 'name', label: 'Nome do Produto' },
+                      { key: 'category', label: 'Categoria' },
+                      { key: 'subcategory', label: 'Subcategoria' },
+                      { key: 'priceNormal', label: 'Preço Normal' },
+                      { key: 'priceResale', label: 'Preço Revenda' },
+                      { key: 'stock', label: 'Estoque' },
+                    ] as { key: keyof typeof productForm; label: string }[]
+                  ).map(f => (
                     <div key={f.key}>
                       <label className="text-xs font-medium text-foreground tracking-wide">{f.label}</label>
                       <input
-                        value={(productForm as any)[f.key]}
+                        value={String(productForm[f.key] ?? '')}
                         onChange={e => setProductForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                         className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
                       />
@@ -432,17 +434,19 @@ const AdminPanel = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-4">
-                  {[
-                    { key: 'active', label: 'Ativo' },
-                    { key: 'featured', label: 'Destaque' },
-                    { key: 'isNew', label: 'Lançamento' },
-                    { key: 'isPopular', label: 'Popular' },
-                  ].map(({ key, label }) => (
+                  {(
+                    [
+                      { key: 'active', label: 'Ativo' },
+                      { key: 'featured', label: 'Destaque' },
+                      { key: 'isNew', label: 'Lançamento' },
+                      { key: 'isPopular', label: 'Popular' },
+                    ] as { key: keyof typeof productForm; label: string }[]
+                  ).map(({ key, label }) => (
                     <label key={key} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
                       <input
                         type="checkbox"
                         className="accent-primary"
-                        checked={(productForm as any)[key]}
+                        checked={Boolean(productForm[key])}
                         onChange={e => setProductForm(prev => ({ ...prev, [key]: e.target.checked }))}
                       />
                       {label}
@@ -747,18 +751,20 @@ const AdminPanel = () => {
             {showAddCoupon && (
               <div className="bg-card border border-border rounded-sm p-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    { key: 'code', label: 'Código', placeholder: 'CODIGO10' },
-                    { key: 'discount', label: 'Valor do Desconto', placeholder: '10' },
-                    { key: 'maxUses', label: 'Usos Máximos', placeholder: '100' },
-                    { key: 'usesPerClient', label: 'Usos por Cliente', placeholder: '1' },
-                    { key: 'validUntil', label: 'Validade', placeholder: '2025-12-31', type: 'date' },
-                  ].map(f => (
+                  {(
+                    [
+                      { key: 'code', label: 'Código', placeholder: 'CODIGO10' },
+                      { key: 'discount', label: 'Valor do Desconto', placeholder: '10' },
+                      { key: 'maxUses', label: 'Usos Máximos', placeholder: '100' },
+                      { key: 'usesPerClient', label: 'Usos por Cliente', placeholder: '1' },
+                      { key: 'validUntil', label: 'Validade', placeholder: '2025-12-31', type: 'date' },
+                    ] as { key: keyof typeof couponForm; label: string; placeholder: string; type?: string }[]
+                  ).map(f => (
                     <div key={f.key}>
                       <label className="text-xs font-medium text-foreground tracking-wide">{f.label}</label>
                       <input
-                        type={(f as any).type || 'text'}
-                        value={(couponForm as any)[f.key]}
+                        type={f.type || 'text'}
+                        value={couponForm[f.key]}
                         onChange={e => setCouponForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                         className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
                         placeholder={f.placeholder}
@@ -812,7 +818,7 @@ const AdminPanel = () => {
               <p className="text-sm text-muted-foreground">Nenhum pedido realizado.</p>
             )}
             <div className="space-y-4">
-              {ordersList.map((order: any, index: number) => (
+              {ordersList.map((order, index) => (
                 <OrderCard
                   key={order?.id || index}
                   order={order}
@@ -833,7 +839,7 @@ const OrderCard = ({
   onStatusChange,
   onTrackingSave,
 }: {
-  order: any;
+  order: Order;
   onStatusChange: (id: string, s: OrderStatus) => void;
   onTrackingSave: (id: string, t: string, c: string) => void;
 }) => {
@@ -902,9 +908,12 @@ const OrderCard = ({
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground mb-2">Itens do Pedido</p>
           <div className="space-y-1">
-            {safeItems.map((item: any, idx: number) => {
-              const productName = item?.product?.name || item?.name || 'Produto';
-              const quantity = Number(item?.quantity || 0);
+            {safeItems.map((item, idx) => {
+              const productName = item?.product?.name || 'Produto';
+              const quantity =
+                item?.priceType === 'resale'
+                  ? Object.values(item?.sizeDistribution || {}).reduce((a, b) => a + Number(b || 0), 0)
+                  : Number(item?.quantity || 0);
               const itemPrice =
                 item?.priceType === 'resale'
                   ? item?.product?.priceResale

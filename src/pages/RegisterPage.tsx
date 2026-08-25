@@ -19,7 +19,7 @@ const RegisterPage = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const update = (field: string, value: string) =>
+  const update = (field: keyof typeof form, value: string) =>
     setForm((p) => ({ ...p, [field]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +63,7 @@ const RegisterPage = () => {
     }
   };
 
-  const fields = [
+  const fields: { key: keyof typeof form; label: string; type: string; placeholder: string }[] = [
     { key: 'name', label: 'NOME COMPLETO', type: 'text', placeholder: 'Seu nome' },
     { key: 'email', label: 'E-MAIL', type: 'email', placeholder: 'seu@email.com' },
     { key: 'phone', label: 'TELEFONE', type: 'tel', placeholder: '(00) 00000-0000' },
@@ -91,7 +91,7 @@ const RegisterPage = () => {
                 <label className="text-xs font-medium text-foreground tracking-wide">{f.label}</label>
                 <input
                   type={f.type}
-                  value={(form as any)[f.key]}
+                  value={form[f.key]}
                   onChange={(e) => update(f.key, e.target.value)}
                   className="w-full mt-1 border border-border rounded-sm py-2.5 px-4 text-sm bg-background focus:outline-none focus:border-primary"
                   placeholder={f.placeholder}

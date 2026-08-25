@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { couponService } from '@/services/coupons';
 import { orderService } from '@/services/orders';
+import { paymentService } from '@/services/payments';
 import { ShippingMethod } from '@/types';
 import { toast } from 'sonner';
 import { CreditCard, Tag, Truck } from 'lucide-react';
@@ -39,7 +39,6 @@ const SHIPPING_OPTIONS: {
 const CheckoutPage = () => {
   const { items, totalPrice, couponCode, setCouponCode, discount, setDiscount, clearCart } = useCart();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('padrao');
@@ -103,7 +102,7 @@ const CheckoutPage = () => {
         return;
       }
 
-      await orderService.create({
+      const order = await orderService.create({
         items,
         address,
         couponCode: couponCode || undefined,
@@ -120,13 +119,14 @@ const CheckoutPage = () => {
         },
       });
 
-      toast.success('Pedido realizado com sucesso!');
       clearCart();
-      navigate('/painel');
-    } catch (err: any) {
+
+      const { initPoint } = await paymentService.createPreference(order.id);
+      window.location.href = initPoint;
+    } catch (err) {
       console.error('Erro ao finalizar pedido:', err);
-      toast.error(err?.message || 'Erro ao finalizar pedido');
-    } finally {
+      const message = err instanceof Error ? err.message : 'Erro ao finalizar pedido';
+      toast.error(message);
       setSubmitting(false);
     }
   };
@@ -205,21 +205,23 @@ const CheckoutPage = () => {
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { key: 'zip', label: 'CEP', placeholder: '00000-000' },
-                    { key: 'street', label: 'Rua', placeholder: 'Nome da rua' },
-                    { key: 'number', label: 'Número', placeholder: '000' },
-                    { key: 'complement', label: 'Complemento', placeholder: 'Apto, bloco...' },
-                    { key: 'neighborhood', label: 'Bairro', placeholder: 'Bairro' },
-                    { key: 'city', label: 'Cidade', placeholder: 'Cidade' },
-                    { key: 'state', label: 'Estado', placeholder: 'SP' },
-                  ].map((f) => (
+                  {(
+                    [
+                      { key: 'zip', label: 'CEP', placeholder: '00000-000' },
+                      { key: 'street', label: 'Rua', placeholder: 'Nome da rua' },
+                      { key: 'number', label: 'Número', placeholder: '000' },
+                      { key: 'complement', label: 'Complemento', placeholder: 'Apto, bloco...' },
+                      { key: 'neighborhood', label: 'Bairro', placeholder: 'Bairro' },
+                      { key: 'city', label: 'Cidade', placeholder: 'Cidade' },
+                      { key: 'state', label: 'Estado', placeholder: 'SP' },
+                    ] as { key: keyof typeof address; label: string; placeholder: string }[]
+                  ).map((f) => (
                     <div key={f.key}>
                       <label className="text-xs font-medium text-foreground tracking-wide">
                         {f.label}
                       </label>
                       <input
-                        value={(address as any)[f.key]}
+                        value={address[f.key] || ''}
                         onChange={(e) =>
                           setAddress((prev) => ({
                             ...prev,
@@ -339,11 +341,12 @@ const CheckoutPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <CreditCard className="text-primary" size={18} />
                 <span className="text-sm font-medium text-foreground">
-                  Pagamento combinado após confirmação
+                  Pagamento via Mercado Pago
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Seu pedido ficará em análise e a loja entrará em contato para combinar o pagamento.
+                Ao finalizar, você será redirecionado para o Mercado Pago para concluir o pagamento com
+                Pix, cartão ou boleto.
               </p>
             </div>
 
@@ -353,7 +356,7 @@ const CheckoutPage = () => {
               disabled={submitting}
               className="w-full gold-gradient text-primary-foreground py-3 font-medium text-sm tracking-wider mt-6 hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {submitting ? 'PROCESSANDO...' : 'FINALIZAR PEDIDO'}
+              {submitting ? 'PROCESSANDO...' : 'IR PARA PAGAMENTO'}
             </button>
           </div>
         </div>

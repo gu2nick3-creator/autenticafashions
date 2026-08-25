@@ -10,7 +10,27 @@ const emptyAddress: Address = {
   zip: '',
 };
 
-export function mapProduct(row: any): Product {
+interface ProductRow {
+  id: string;
+  sku: string | null;
+  name: string;
+  description: string | null;
+  category: string | null;
+  subcategory: string | null;
+  price_normal: number | null;
+  price_resale: number | null;
+  stock: number | null;
+  active: boolean;
+  featured: boolean;
+  is_new: boolean;
+  is_popular: boolean;
+  type: Product['type'];
+  sizes: string[] | null;
+  colors: Product['colors'] | null;
+  images: string[] | null;
+}
+
+export function mapProduct(row: ProductRow): Product {
   return {
     id: row.id,
     sku: row.sku || '',
@@ -53,7 +73,19 @@ export function productToRow(data: Partial<Product>): Record<string, unknown> {
   return row;
 }
 
-export function mapCategory(row: any, subcategories: any[] = []): Category {
+interface CategoryRow {
+  id: string;
+  name: string;
+  image: string | null;
+}
+
+interface SubcategoryRow {
+  id: string;
+  category_id: string;
+  name: string;
+}
+
+export function mapCategory(row: CategoryRow, subcategories: SubcategoryRow[] = []): Category {
   return {
     id: row.id,
     name: row.name,
@@ -64,7 +96,18 @@ export function mapCategory(row: any, subcategories: any[] = []): Category {
   };
 }
 
-export function mapProfile(row: any): User {
+interface ProfileRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  cpf_cnpj: string | null;
+  address: Partial<Address> | null;
+  role: User['role'];
+  created_at: string;
+}
+
+export function mapProfile(row: ProfileRow): User {
   return {
     id: row.id,
     name: row.name || '',
@@ -77,7 +120,29 @@ export function mapProfile(row: any): User {
   };
 }
 
-export function mapOrder(row: any): Order {
+interface OrderRow {
+  id: string;
+  user_id: string;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  address: Partial<Address> | null;
+  items: Order['items'] | null;
+  price_type: Order['priceType'];
+  subtotal: number | null;
+  discount: number | null;
+  shipping_method: Order['shippingMethod'];
+  shipping_price: number | null;
+  total: number | null;
+  coupon_code: string | null;
+  status: Order['status'];
+  tracking_code: string | null;
+  carrier: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function mapOrder(row: OrderRow): Order {
   return {
     id: row.id,
     userId: row.user_id,
@@ -101,7 +166,19 @@ export function mapOrder(row: any): Order {
   };
 }
 
-export function mapCoupon(row: any): Coupon {
+interface CouponRow {
+  id: string;
+  code: string;
+  type: Coupon['type'];
+  discount: number | null;
+  valid_until: string | null;
+  max_uses: number | null;
+  current_uses: number | null;
+  uses_per_client: number | null;
+  active: boolean;
+}
+
+export function mapCoupon(row: CouponRow): Coupon {
   return {
     id: row.id,
     code: row.code,
