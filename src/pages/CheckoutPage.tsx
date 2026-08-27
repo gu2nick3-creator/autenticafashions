@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useCart } from '@/contexts/CartContext';
@@ -6,42 +6,27 @@ import { useAuth } from '@/contexts/AuthContext';
 import { couponService } from '@/services/coupons';
 import { orderService } from '@/services/orders';
 import { paymentService } from '@/services/payments';
+import { shippingService, ShippingQuote } from '@/services/shipping';
 import { ShippingMethod } from '@/types';
 import { toast } from 'sonner';
 import { CreditCard, Tag, Truck } from 'lucide-react';
 
-const SHIPPING_OPTIONS: {
-  id: ShippingMethod;
-  label: string;
-  description: string;
-  price: number;
-}[] = [
-  {
-    id: 'padrao',
-    label: 'Entrega Padrão',
-    description: 'Prazo normal de entrega',
-    price: 19.9,
-  },
-  {
-    id: 'expressa',
-    label: 'Entrega Expressa',
-    description: 'Entrega prioritária',
-    price: 29.9,
-  },
-  {
-    id: 'retirada',
-    label: 'Retirada no local',
-    description: 'Retire sem custo',
-    price: 0,
-  },
-];
+const PICKUP_OPTION = {
+  id: 'retirada',
+  label: 'Retirada no local',
+  description: 'Retire sem custo',
+  price: 0,
+};
 
 const CheckoutPage = () => {
   const { items, totalPrice, couponCode, setCouponCode, discount, setDiscount, clearCart } = useCart();
   const { user } = useAuth();
   const [couponInput, setCouponInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('padrao');
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('retirada');
+  const [shippingQuotes, setShippingQuotes] = useState<ShippingQuote[]>([]);
+  const [loadingShipping, setLoadingShipping] = useState(false);
+  const [shippingError, setShippingError] = useState('');
   const [address, setAddress] = useState({
     street: '',
     number: '',
@@ -52,8 +37,57 @@ const CheckoutPage = () => {
     zip: '',
   });
 
+  const shippingOptions = [
+    ...shippingQuotes.map((q) => ({
+      id: q.id,
+      label: q.label,
+      description: `Prazo estimado: ${q.deliveryDays} dia(s) útil(eis)`,
+      price: q.price,
+    })),
+    PICKUP_OPTION,
+  ];
+
+  useEffect(() => {
+    const cep = address.zip.replace(/\D/g, '');
+    if (cep.length !== 8) {
+      setShippingQuotes([]);
+      setShippingError('');
+      setShippingMethod((prev) => (prev.startsWith('me-') ? 'retirada' : prev));
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLoadingShipping(true);
+      setShippingError('');
+      try {
+        const quotes = await shippingService.calculate(cep, items);
+        if (cancelled) return;
+        setShippingQuotes(quotes);
+        if (quotes.length > 0) {
+          setShippingMethod(quotes[0].id);
+        } else {
+          setShippingError('Nenhuma opção de entrega disponível para este CEP');
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Erro ao calcular frete';
+        setShippingError(message);
+        setShippingQuotes([]);
+      } finally {
+        if (!cancelled) setLoadingShipping(false);
+      }
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address.zip]);
+
   const selectedShipping =
-    SHIPPING_OPTIONS.find((option) => option.id === shippingMethod) || SHIPPING_OPTIONS[0];
+    shippingOptions.find((option) => option.id === shippingMethod) || PICKUP_OPTION;
 
   const shippingPrice = selectedShipping.price;
 
@@ -163,12 +197,66 @@ const CheckoutPage = () => {
             </div>
 
             <div className="bg-card border border-border rounded-sm p-6">
+              <h2 className="font-display text-lg font-medium text-foreground mb-4">
+                Endereço de Entrega
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">
+                Informe o CEP para calcularmos o frete automaticamente.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(
+                  [
+                    { key: 'zip', label: 'CEP', placeholder: '00000-000' },
+                    { key: 'street', label: 'Rua', placeholder: 'Nome da rua' },
+                    { key: 'number', label: 'Número', placeholder: '000' },
+                    { key: 'complement', label: 'Complemento', placeholder: 'Apto, bloco...' },
+                    { key: 'neighborhood', label: 'Bairro', placeholder: 'Bairro' },
+                    { key: 'city', label: 'Cidade', placeholder: 'Cidade' },
+                    { key: 'state', label: 'Estado', placeholder: 'SP' },
+                  ] as { key: keyof typeof address; label: string; placeholder: string }[]
+                ).map((f) => (
+                  <div key={f.key}>
+                    <label className="text-xs font-medium text-foreground tracking-wide">
+                      {f.label}
+                    </label>
+                    <input
+                      value={address[f.key] || ''}
+                      onChange={(e) =>
+                        setAddress((prev) => ({
+                          ...prev,
+                          [f.key]: e.target.value,
+                        }))
+                      }
+                      className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
+                      placeholder={f.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-sm p-6">
               <h2 className="font-display text-lg font-medium text-foreground mb-4 flex items-center gap-2">
                 <Truck size={18} className="text-primary" /> Modalidade de Envio
               </h2>
 
+              {address.zip.replace(/\D/g, '').length !== 8 && (
+                <p className="text-xs text-muted-foreground mb-3">
+                  Informe o CEP acima para ver as opções de entrega, ou escolha retirada no local.
+                </p>
+              )}
+
+              {loadingShipping && (
+                <p className="text-xs text-muted-foreground mb-3">Calculando frete...</p>
+              )}
+
+              {shippingError && (
+                <p className="text-xs text-destructive mb-3">{shippingError}</p>
+              )}
+
               <div className="space-y-3">
-                {SHIPPING_OPTIONS.map((option) => (
+                {shippingOptions.map((option) => (
                   <label
                     key={option.id}
                     className={`flex items-start justify-between gap-4 border rounded-sm p-4 cursor-pointer transition-colors ${
@@ -197,56 +285,6 @@ const CheckoutPage = () => {
                 ))}
               </div>
             </div>
-
-            {shippingMethod !== 'retirada' && (
-              <div className="bg-card border border-border rounded-sm p-6">
-                <h2 className="font-display text-lg font-medium text-foreground mb-4">
-                  Endereço de Entrega
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(
-                    [
-                      { key: 'zip', label: 'CEP', placeholder: '00000-000' },
-                      { key: 'street', label: 'Rua', placeholder: 'Nome da rua' },
-                      { key: 'number', label: 'Número', placeholder: '000' },
-                      { key: 'complement', label: 'Complemento', placeholder: 'Apto, bloco...' },
-                      { key: 'neighborhood', label: 'Bairro', placeholder: 'Bairro' },
-                      { key: 'city', label: 'Cidade', placeholder: 'Cidade' },
-                      { key: 'state', label: 'Estado', placeholder: 'SP' },
-                    ] as { key: keyof typeof address; label: string; placeholder: string }[]
-                  ).map((f) => (
-                    <div key={f.key}>
-                      <label className="text-xs font-medium text-foreground tracking-wide">
-                        {f.label}
-                      </label>
-                      <input
-                        value={address[f.key] || ''}
-                        onChange={(e) =>
-                          setAddress((prev) => ({
-                            ...prev,
-                            [f.key]: e.target.value,
-                          }))
-                        }
-                        className="w-full mt-1 border border-border rounded-sm py-2 px-3 text-sm bg-background focus:outline-none focus:border-primary"
-                        placeholder={f.placeholder}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {shippingMethod === 'retirada' && (
-              <div className="bg-card border border-border rounded-sm p-6">
-                <h2 className="font-display text-lg font-medium text-foreground mb-2">
-                  Retirada no local
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Como você escolheu retirada no local, não é necessário preencher endereço de entrega.
-                </p>
-              </div>
-            )}
 
             <div className="bg-card border border-border rounded-sm p-6">
               <h2 className="font-display text-lg font-medium text-foreground mb-4 flex items-center gap-2">

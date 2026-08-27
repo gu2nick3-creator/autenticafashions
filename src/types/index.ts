@@ -64,7 +64,7 @@ export interface Address {
   zip: string;
 }
 
-export type ShippingMethod = 'padrao' | 'expressa' | 'retirada';
+export type ShippingMethod = string;
 
 export interface Order {
   id: string;
