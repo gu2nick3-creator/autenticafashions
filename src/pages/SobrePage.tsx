@@ -57,7 +57,7 @@ const SobrePage = () => (
               <Phone className="text-primary mt-1 shrink-0" size={20} />
               <div>
                 <p className="text-sm font-medium text-foreground">WhatsApp</p>
-                <a href="https://wa.me/5583996189688" className="text-sm text-muted-foreground hover:text-primary transition-colors">(83) 99618-9688</a>
+                <a href="https://wa.me/558399618968" className="text-sm text-muted-foreground hover:text-primary transition-colors">(83) 9961-8968</a>
               </div>
             </div>
             <div className="flex items-start gap-3">

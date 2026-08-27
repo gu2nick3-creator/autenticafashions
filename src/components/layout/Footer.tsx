@@ -37,7 +37,7 @@ const Footer = () => (
         <div>
           <h4 className="font-display text-lg font-medium text-foreground mb-4">Contato</h4>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <a href="https://wa.me/5583996189688" target="_blank" rel="noopener noreferrer" className="block hover:text-primary transition-colors">(83) 99618-9688</a>
+            <a href="https://wa.me/558399618968" target="_blank" rel="noopener noreferrer" className="block hover:text-primary transition-colors">(83) 9961-8968</a>
             <p>João Pessoa - PB</p>
             <p>Seg - Sáb: 8h às 22h</p>
           </div>
