@@ -2,23 +2,17 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductCard from '@/components/ProductCard';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { productService } from '@/services/products';
 import { categoryService } from '@/services/categories';
 import { Product, Category } from '@/types';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
 import bannerRevenda from '@/assets/banner-revenda.png';
-import heroMain from '@/assets/hero-main.jpg';
-import heroSlide2 from '@/assets/hero-slide-2.jpg';
-import heroSlide3 from '@/assets/hero-slide-3.jpg';
-import heroSlide4 from '@/assets/hero-slide-4.jpg';
-
-const heroImages = [heroMain, heroSlide2, heroSlide3, heroSlide4];
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     productService.getAll().then(setProducts).catch(() => {});
@@ -29,43 +23,44 @@ const Index = () => {
   const popularProducts = products.filter(p => p.isPopular);
   const featuredProducts = products.filter(p => p.featured);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % heroImages.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Banner */}
-      <section className="relative overflow-hidden">
-        {/* Desktop: slideshow too */}
-        <div className="absolute inset-0">
-          {heroImages.map((img, i) => (
-            <img
-              key={i}
-              src={img}
-              alt="Autentica Fashionf"
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === currentSlide ? 'opacity-100' : 'opacity-0'}`}
-              width={1920}
-              height={1080}
-            />
-          ))}
-          <div className="absolute inset-0 bg-gradient-to-b from-[hsl(0,0%,0%)]/50 via-[hsl(0,0%,0%)]/40 to-[hsl(0,0%,0%)]/50"></div>
-        </div>
-        <div className="container relative py-32 md:py-44 flex flex-col items-center text-center">
-          <div className="animate-fade-in">
-            <h1 className="font-display text-5xl md:text-7xl font-semibold leading-tight mb-4 text-white" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
-              Autentica Fashionf
+      {/* Vitrine de Produtos */}
+      <section className="bg-cream py-10 md:py-14">
+        <div className="container">
+          <div className="text-center mb-8">
+            <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground">
+              Vitrine de <span className="gold-text">Produtos</span>
             </h1>
-            <p className="text-white/90 font-medium text-lg md:text-xl mb-10 tracking-wide" style={{ textShadow: '0 1px 10px rgba(0,0,0,0.5)' }}>
-              Estilo e Conforto para Todos os Momentos
+            <p className="text-muted-foreground text-sm md:text-base mt-2">
+              Confira os produtos disponíveis em nosso catálogo
             </p>
+            <div className="w-16 h-0.5 gold-gradient mx-auto mt-4"></div>
+          </div>
+
+          {products.length > 0 ? (
+            <Carousel opts={{ align: 'start', loop: products.length > 4 }} className="w-full px-8 md:px-12">
+              <CarouselContent>
+                {products.map(p => (
+                  <CarouselItem key={p.id} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
+                    <ProductCard product={p} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="hidden md:flex" />
+              <CarouselNext className="hidden md:flex" />
+            </Carousel>
+          ) : (
+            <p className="text-center text-muted-foreground text-sm">
+              Nenhum produto disponível no momento.
+            </p>
+          )}
+
+          <div className="text-center mt-8">
             <Link to="/produtos" className="gold-gradient text-primary-foreground px-12 py-3.5 font-medium text-sm tracking-widest hover:opacity-90 transition-opacity inline-block">
-              VER COLEÇÃO
+              VER TODOS OS PRODUTOS
             </Link>
           </div>
         </div>
