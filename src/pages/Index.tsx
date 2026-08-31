@@ -7,7 +7,7 @@ import { productService } from '@/services/products';
 import { categoryService } from '@/services/categories';
 import { Product, Category } from '@/types';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, TrendingUp } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Sparkles, TrendingUp } from 'lucide-react';
 import bannerRevenda from '@/assets/banner-revenda.png';
 
 const Index = () => {
@@ -28,7 +28,7 @@ const Index = () => {
     if (!showcaseApi) return;
     const timer = setInterval(() => {
       showcaseApi.scrollNext();
-    }, 2500);
+    }, 4000);
     return () => clearInterval(timer);
   }, [showcaseApi]);
 
@@ -36,55 +36,65 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Vitrine de Produtos */}
-      <section className="bg-cream py-10 md:py-14">
-        <div className="container">
-          <div className="text-center mb-8">
-            <h1 className="font-display text-3xl md:text-4xl font-semibold text-foreground">
-              Vitrine de <span className="gold-text">Produtos</span>
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base mt-2">
-              Confira os produtos disponíveis em nosso catálogo
-            </p>
-            <div className="w-16 h-0.5 gold-gradient mx-auto mt-4"></div>
+      {/* Vitrine de Produtos - hero full-screen */}
+      <section className="relative w-full overflow-hidden">
+        {products.length > 0 ? (
+          <Carousel setApi={setShowcaseApi} opts={{ align: 'start', loop: true }} className="w-full">
+            <CarouselContent className="ml-0">
+              {products.map(p => (
+                <CarouselItem key={p.id} className="basis-full pl-0">
+                  <Link to={`/produto/${p.id}`} className="relative block w-full h-[70vh] md:h-[88vh] min-h-[440px]">
+                    <img
+                      src={p.images[0]}
+                      alt={p.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[hsl(0,0%,0%)]/70 via-[hsl(0,0%,0%)]/10 to-[hsl(0,0%,0%)]/20"></div>
+                    <div className="absolute inset-0 flex flex-col items-start justify-end p-6 pb-14 md:p-16 md:pb-20">
+                      <p className="text-white/80 text-xs md:text-sm tracking-widest uppercase mb-2" style={{ textShadow: '0 1px 10px rgba(0,0,0,0.5)' }}>
+                        {p.category}
+                      </p>
+                      <h2
+                        className="font-display text-3xl md:text-6xl font-semibold leading-tight mb-5 max-w-xl text-white"
+                        style={{ textShadow: '0 2px 20px rgba(0,0,0,0.6)' }}
+                      >
+                        {p.name}
+                      </h2>
+                      <span className="gold-gradient text-primary-foreground px-10 py-3.5 font-medium text-sm tracking-widest inline-block">
+                        VER PRODUTO
+                      </span>
+                    </div>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        ) : (
+          <div className="w-full h-[70vh] md:h-[88vh] min-h-[440px] flex items-center justify-center bg-cream">
+            <p className="text-muted-foreground text-sm">Nenhum produto disponível no momento.</p>
           </div>
+        )}
 
-          {products.length > 0 ? (
-            <Carousel
-              setApi={setShowcaseApi}
-              opts={{ align: 'start', loop: true }}
-              className="w-full"
+        {products.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Produto anterior"
+              onClick={() => showcaseApi?.scrollPrev()}
+              className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm flex items-center justify-center text-white transition-colors"
             >
-              <CarouselContent>
-                {products.map(p => (
-                  <CarouselItem key={p.id} className="basis-1/3 md:basis-1/5 lg:basis-1/6">
-                    <Link
-                      to={`/produto/${p.id}`}
-                      className="block aspect-square overflow-hidden rounded-sm border border-border hover:border-primary hover:gold-shadow transition-all duration-300"
-                    >
-                      <img
-                        src={p.images[0]}
-                        alt={p.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </Link>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-          ) : (
-            <p className="text-center text-muted-foreground text-sm">
-              Nenhum produto disponível no momento.
-            </p>
-          )}
-
-          <div className="text-center mt-8">
-            <Link to="/produtos" className="gold-gradient text-primary-foreground px-12 py-3.5 font-medium text-sm tracking-widest hover:opacity-90 transition-opacity inline-block">
-              VER TODOS OS PRODUTOS
-            </Link>
-          </div>
-        </div>
+              <ChevronLeft size={24} />
+            </button>
+            <button
+              type="button"
+              aria-label="Próximo produto"
+              onClick={() => showcaseApi?.scrollNext()}
+              className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-sm flex items-center justify-center text-white transition-colors"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </>
+        )}
       </section>
 
       {/* Info bar */}
