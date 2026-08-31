@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductCard from '@/components/ProductCard';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { productService } from '@/services/products';
 import { categoryService } from '@/services/categories';
 import { Product, Category } from '@/types';
@@ -13,6 +13,7 @@ import bannerRevenda from '@/assets/banner-revenda.png';
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [showcaseApi, setShowcaseApi] = useState<CarouselApi>();
 
   useEffect(() => {
     productService.getAll().then(setProducts).catch(() => {});
@@ -22,6 +23,14 @@ const Index = () => {
   const newProducts = products.filter(p => p.isNew);
   const popularProducts = products.filter(p => p.isPopular);
   const featuredProducts = products.filter(p => p.featured);
+
+  useEffect(() => {
+    if (!showcaseApi) return;
+    const timer = setInterval(() => {
+      showcaseApi.scrollNext();
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [showcaseApi]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,16 +50,28 @@ const Index = () => {
           </div>
 
           {products.length > 0 ? (
-            <Carousel opts={{ align: 'start', loop: products.length > 4 }} className="w-full px-8 md:px-12">
+            <Carousel
+              setApi={setShowcaseApi}
+              opts={{ align: 'start', loop: true }}
+              className="w-full"
+            >
               <CarouselContent>
                 {products.map(p => (
-                  <CarouselItem key={p.id} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
-                    <ProductCard product={p} />
+                  <CarouselItem key={p.id} className="basis-1/3 md:basis-1/5 lg:basis-1/6">
+                    <Link
+                      to={`/produto/${p.id}`}
+                      className="block aspect-square overflow-hidden rounded-sm border border-border hover:border-primary hover:gold-shadow transition-all duration-300"
+                    >
+                      <img
+                        src={p.images[0]}
+                        alt={p.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </Link>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="hidden md:flex" />
-              <CarouselNext className="hidden md:flex" />
             </Carousel>
           ) : (
             <p className="text-center text-muted-foreground text-sm">
